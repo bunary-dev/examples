@@ -4,11 +4,11 @@ A complete example demonstrating all core features of the Bunary framework.
 
 ## Features Demonstrated
 
-- ✅ **Route Definition** - Using `Router` to define HTTP endpoints
+- ✅ **Route Definition** - Using `createApp` from `@bunary/http` to define HTTP endpoints
 - ✅ **Path Parameters** - `:id` syntax for dynamic route segments
 - ✅ **Query Parameters** - Accessing query string values
 - ✅ **JSON Serialization** - Automatic JSON response handling
-- ✅ **Middleware Pipeline** - Logging and CORS middleware
+- ✅ **Middleware Pipeline** - Request logging middleware
 - ✅ **Environment Helpers** - `env()`, `isDev()` for configuration
 
 ## Quick Start

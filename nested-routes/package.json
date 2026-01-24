@@ -1,0 +1,14 @@
+{
+	"name": "nested-routes-example",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun run --hot src/index.ts",
+		"start": "bun run src/index.ts"
+	},
+	"dependencies": {
+        "@bunary/core": "^0.0.2",
+        "@bunary/http": "^0.0.2"
+	}
+}
