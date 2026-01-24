@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "nested-routes-example",
+      "dependencies": {
+        "@bunary/core": "^0.0.2",
+        "@bunary/http": "^0.0.2",
+      },
+    },
+  },
+  "packages": {
+    "@bunary/core": ["@bunary/core@0.0.2", "", {}, "sha512-fBJMKV1pjrVMXa/ndRehmX/cXQd71b37YGSXQ3p2DDyynvP7EDtYlWJ3V4KQa3jIC/OeYCKmjopcXDHS/IMN7Q=="],
+
+    "@bunary/http": ["@bunary/http@0.0.2", "", { "dependencies": { "@bunary/core": "^0.0.2" } }, "sha512-/6kS8PCaNXYMSE6NCFG2fKFY+4jCco7WGDk4Dw6jHssZfkLvlhOeeQAavqcFLkcRmQfIG4ALH77tG9V4va3RmA=="],
+  }
+}
