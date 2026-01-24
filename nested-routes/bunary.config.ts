@@ -1,6 +1,11 @@
 import { defineConfig } from "@bunary/core";
 
+/**
+ * Bunary application configuration.
+ */
 export default defineConfig({
-	name: "nested-routes-example",
-	env: "development",
+	app: {
+		name: "nested-routes-example",
+		env: "development",
+	},
 });
