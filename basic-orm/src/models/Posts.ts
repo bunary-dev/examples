@@ -20,4 +20,7 @@ import { BaseModel } from "@bunary/orm";
 
 export class Posts extends BaseModel {
 	protected static tableName = "posts";
+	// timestamps = false means createdAt and updatedAt will NOT be excluded
+	// This is useful when you want to display timestamps in your API
+	protected static timestamps = false;
 }

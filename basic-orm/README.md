@@ -42,11 +42,13 @@ setOrmConfig({
 ### 2. Creating Model Classes
 
 ```typescript
-import { BaseModel } from "./models/BaseModel.js";
+import { BaseModel } from "@bunary/orm";
 
-// Create a Users model
+// Create a Users model with protected fields and timestamps
 class Users extends BaseModel {
   protected static tableName = "users";
+  protected static protected = ["password", "secret_key"]; // Auto-excluded
+  protected static timestamps = true; // Auto-exclude createdAt, updatedAt
 }
 
 // Create a Posts model

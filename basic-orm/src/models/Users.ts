@@ -19,7 +19,7 @@
  * ```
  */
 
-import { BaseModel } from "./BaseModel.js";
+import { BaseModel } from "@bunary/orm";
 
 export class Users extends BaseModel {
 	protected static tableName = "users";

@@ -40,44 +40,48 @@ setOrmConfig({
 function initializeDatabase() {
 	const db = new Database(dbPath);
 
+	// Drop existing tables to recreate with updated schema
+	db.exec("DROP TABLE IF EXISTS posts");
+	db.exec("DROP TABLE IF EXISTS users");
+
 	// Create users table
+	// Note: Using camelCase for timestamps (createdAt, updatedAt) to match BaseModel defaults
 	db.exec(`
-		CREATE TABLE IF NOT EXISTS users (
+		CREATE TABLE users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			email TEXT NOT NULL UNIQUE,
 			password TEXT NOT NULL,
+			secret_key TEXT,
 			age INTEGER,
 			active INTEGER DEFAULT 1,
-			created_at TEXT DEFAULT CURRENT_TIMESTAMP
+			createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+			updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
 		);
 	`);
 
 	// Create posts table
 	db.exec(`
-		CREATE TABLE IF NOT EXISTS posts (
+		CREATE TABLE posts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			user_id INTEGER NOT NULL,
 			title TEXT NOT NULL,
 			content TEXT,
 			published INTEGER DEFAULT 0,
-			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+			updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (user_id) REFERENCES users(id)
 		);
 	`);
 
-	// Clear existing data
-	db.exec("DELETE FROM posts");
-	db.exec("DELETE FROM users");
-
 	// Insert sample users
 	db.exec(`
-		INSERT INTO users (name, email, password, age, active) VALUES
-			('John Doe', 'john@example.com', 'secret123', 25, 1),
-			('Jane Smith', 'jane@example.com', 'secret456', 30, 1),
-			('Bob Wilson', 'bob@example.com', 'secret789', 28, 0),
-			('Alice Brown', 'alice@example.com', 'secret012', 35, 1),
-			('Charlie Davis', 'charlie@example.com', 'secret345', 22, 1);
+		INSERT INTO users (name, email, password, secret_key, age, active) VALUES
+			('John Doe', 'john@example.com', 'secret123', 'key123', 25, 1),
+			('Jane Smith', 'jane@example.com', 'secret456', 'key456', 30, 1),
+			('Bob Wilson', 'bob@example.com', 'secret789', 'key789', 28, 0),
+			('Alice Brown', 'alice@example.com', 'secret012', 'key012', 35, 1),
+			('Charlie Davis', 'charlie@example.com', 'secret345', 'key345', 22, 1);
 	`);
 
 	// Insert sample posts
@@ -118,11 +122,13 @@ async function demonstrateQueries() {
 	console.log("3️⃣  Select specific columns");
 	const userNames = await Users.select("id", "name", "email").all();
 	console.log("   Users (id, name, email only):", userNames);
+	console.log("   Note: password, secret_key, createdAt, updatedAt are automatically excluded");
 	console.log();
 
-	console.log("4️⃣  Exclude sensitive columns");
-	const publicUsers = await Users.exclude("password").all();
-	console.log("   Users (without password):", publicUsers[0]);
+	console.log("4️⃣  Protected fields and timestamps are automatically excluded");
+	const publicUsers = await Users.all();
+	console.log("   First user (password, secret_key, timestamps excluded):", publicUsers[0]);
+	console.log("   Notice: password, secret_key, createdAt, updatedAt are not in the result");
 	console.log();
 
 	// ------------------------------------------------------------------------
@@ -192,9 +198,10 @@ async function demonstrateQueries() {
 
 	console.log("1️⃣3️⃣  Query related posts");
 	const posts = await Posts.where("published", 1)
-		.orderBy("created_at", "desc")
+		.orderBy("createdAt", "desc")
 		.all();
 	console.log(`   Found ${posts.length} published posts`);
+	console.log("   Note: Posts model has timestamps=false, so createdAt/updatedAt are included");
 	console.log();
 
 	// Get posts for a specific user
