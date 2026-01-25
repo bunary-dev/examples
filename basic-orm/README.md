@@ -5,6 +5,7 @@ A complete example demonstrating how to use `@bunary/orm` in a Bunary applicatio
 ## Features Demonstrated
 
 - ✅ **ORM Configuration** - Setting up SQLite database connection
+- ✅ **Model Classes** - Creating Eloquent-like model classes (Users, Posts)
 - ✅ **Database Setup** - Creating tables and inserting sample data
 - ✅ **Basic Queries** - `find()`, `all()`, `select()`, `exclude()`
 - ✅ **Advanced Queries** - `where()`, `limit()`, `offset()`, `orderBy()`, `first()`, `count()`
@@ -38,54 +39,59 @@ setOrmConfig({
 });
 ```
 
-### 2. Basic Queries
+### 2. Creating Model Classes
 
 ```typescript
-// Find a record by ID
-const user = await Model.table("users").find(1);
+import { BaseModel } from "./models/BaseModel.js";
 
-// Get all records
-const users = await Model.table("users").all();
+// Create a Users model
+class Users extends BaseModel {
+  protected static tableName = "users";
+}
 
-// Select specific columns
-const users = await Model.table("users")
-  .select("id", "name", "email")
-  .all();
-
-// Exclude sensitive columns
-const users = await Model.table("users")
-  .exclude("password")
-  .all();
+// Create a Posts model
+class Posts extends BaseModel {
+  protected static tableName = "posts";
+}
 ```
 
-### 3. Advanced Queries
+### 3. Basic Queries (Eloquent-like Pattern)
+
+```typescript
+import { Users } from "./models/Users.js";
+
+// Find a record by ID
+const user = await Users.find(1);
+
+// Get all records
+const users = await Users.all();
+
+// Select specific columns
+const users = await Users.select("id", "name", "email").all();
+
+// Exclude sensitive columns
+const users = await Users.exclude("password").all();
+```
+
+### 4. Advanced Queries
 
 ```typescript
 // Where clauses
-const activeUsers = await Model.table("users")
-  .where("active", 1)
-  .all();
+const activeUsers = await Users.where("active", 1).all();
 
-const youngUsers = await Model.table("users")
-  .where("age", "<", 30)
-  .all();
+const youngUsers = await Users.where("age", "<", 30).all();
 
 // Pagination
-const page2 = await Model.table("users")
-  .orderBy("id", "asc")
-  .offset(2)
-  .limit(2)
-  .all();
+const page2 = await Users.orderBy("id", "asc").offset(2).limit(2).all();
 
 // Count
-const total = await Model.table("users").count();
+const total = await Users.count();
 ```
 
-### 4. Complex Chaining
+### 5. Complex Chaining
 
 ```typescript
-const results = await Model.table("users")
-  .select("id", "name", "email", "age")
+const results = await Users.select("id", "name", "email", "age")
   .where("active", 1)
   .where("age", ">", 25)
   .orderBy("age", "desc")
@@ -144,7 +150,12 @@ basic-orm/
 ├── package.json          # Dependencies and scripts
 ├── README.md            # This file
 ├── src/
-│   └── index.ts         # Main example code
+│   ├── index.ts         # Main example code
+│   └── models/
+│       ├── BaseModel.ts # Base model class
+│       ├── Users.ts     # Users model
+│       ├── Posts.ts     # Posts model
+│       └── index.ts     # Model exports
 └── .gitignore          # Git ignore rules
 ```
 
@@ -156,10 +167,27 @@ basic-orm/
 
 ## Next Steps
 
-1. **Modify the queries** - Experiment with different query patterns
-2. **Add your own tables** - Create tables for your use case
-3. **Explore the API** - Check the [@bunary/orm documentation](../../orm/README.md)
-4. **Build an app** - Use this as a starting point for your application
+1. **Create your own models** - Extend `BaseModel` to create models for your tables
+2. **Modify the queries** - Experiment with different query patterns
+3. **Add your own tables** - Create tables for your use case
+4. **Explore the API** - Check the [@bunary/orm documentation](../../orm/README.md)
+5. **Build an app** - Use this as a starting point for your application
+
+## Model Class Pattern
+
+This example demonstrates the Eloquent-like pattern where you create model classes instead of using `Model.table("users")`. 
+
+**Benefits:**
+- ✅ Type-safe model references
+- ✅ Cleaner, more readable code
+- ✅ IDE autocomplete support
+- ✅ Easier refactoring (change table name in one place)
+
+**Example:**
+```typescript
+// Instead of: Model.table("users").select("id", "name").all()
+// Use: Users.select("id", "name").all()
+```
 
 ## Related Documentation
 

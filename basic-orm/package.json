@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@bunary/core": "^0.0.2",
-    "@bunary/orm": "^0.0.1"
+    "@bunary/orm": "0.0.1"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6"

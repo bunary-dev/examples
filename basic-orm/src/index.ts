@@ -4,14 +4,15 @@
  * This example demonstrates how to use @bunary/orm in a Bunary application:
  * - Setting up ORM configuration
  * - Creating database tables
- * - Using Model.table() API
+ * - Using Model classes (Eloquent-like pattern)
  * - Basic query operations (find, all, select, exclude)
  * - Advanced query operations (where, limit, offset, orderBy, first, count)
  * - Method chaining
  */
 
-import { Model, setOrmConfig, getDriver } from "@bunary/orm";
+import { setOrmConfig } from "@bunary/orm";
 import { Database } from "bun:sqlite";
+import { Users, Posts } from "./models/index.js";
 
 // ============================================================================
 // ORM Configuration
@@ -105,26 +106,22 @@ async function demonstrateQueries() {
 	// ------------------------------------------------------------------------
 
 	console.log("1️⃣  Find a user by ID");
-	const user = await Model.table("users").find(1);
+	const user = await Users.find(1);
 	console.log("   Result:", user);
 	console.log();
 
 	console.log("2️⃣  Get all users");
-	const allUsers = await Model.table("users").all();
+	const allUsers = await Users.all();
 	console.log(`   Found ${allUsers.length} users`);
 	console.log();
 
 	console.log("3️⃣  Select specific columns");
-	const userNames = await Model.table("users")
-		.select("id", "name", "email")
-		.all();
+	const userNames = await Users.select("id", "name", "email").all();
 	console.log("   Users (id, name, email only):", userNames);
 	console.log();
 
 	console.log("4️⃣  Exclude sensitive columns");
-	const publicUsers = await Model.table("users")
-		.exclude("password")
-		.all();
+	const publicUsers = await Users.exclude("password").all();
 	console.log("   Users (without password):", publicUsers[0]);
 	console.log();
 
@@ -133,28 +130,22 @@ async function demonstrateQueries() {
 	// ------------------------------------------------------------------------
 
 	console.log("5️⃣  Where clause - find active users");
-	const activeUsers = await Model.table("users")
-		.where("active", 1)
-		.all();
+	const activeUsers = await Users.where("active", 1).all();
 	console.log(`   Found ${activeUsers.length} active users`);
 	console.log();
 
 	console.log("6️⃣  Where with operators");
-	const youngUsers = await Model.table("users")
-		.where("age", "<", 30)
-		.all();
+	const youngUsers = await Users.where("age", "<", 30).all();
 	console.log(`   Found ${youngUsers.length} users under 30`);
 	console.log();
 
 	console.log("7️⃣  Limit results");
-	const limitedUsers = await Model.table("users").limit(2).all();
+	const limitedUsers = await Users.limit(2).all();
 	console.log(`   Limited to 2 users:`, limitedUsers.map((u) => u.name));
 	console.log();
 
 	console.log("8️⃣  Order by column");
-	const orderedUsers = await Model.table("users")
-		.orderBy("name", "asc")
-		.all();
+	const orderedUsers = await Users.orderBy("name", "asc").all();
 	console.log(
 		"   Users ordered by name:",
 		orderedUsers.map((u) => u.name),
@@ -162,29 +153,21 @@ async function demonstrateQueries() {
 	console.log();
 
 	console.log("9️⃣  Offset and limit (pagination)");
-	const page2 = await Model.table("users")
-		.orderBy("id", "asc")
-		.offset(2)
-		.limit(2)
-		.all();
+	const page2 = await Users.orderBy("id", "asc").offset(2).limit(2).all();
 	console.log("   Page 2 (offset 2, limit 2):", page2.map((u) => u.name));
 	console.log();
 
 	console.log("🔟 First record");
-	const firstUser = await Model.table("users")
-		.orderBy("id", "asc")
-		.first();
+	const firstUser = await Users.orderBy("id", "asc").first();
 	console.log("   First user:", firstUser?.name);
 	console.log();
 
 	console.log("1️⃣1️⃣  Count records");
-	const totalUsers = await Model.table("users").count();
+	const totalUsers = await Users.count();
 	console.log(`   Total users: ${totalUsers}`);
 	console.log();
 
-	const activeCount = await Model.table("users")
-		.where("active", 1)
-		.count();
+	const activeCount = await Users.where("active", 1).count();
 	console.log(`   Active users: ${activeCount}`);
 	console.log();
 
@@ -193,8 +176,7 @@ async function demonstrateQueries() {
 	// ------------------------------------------------------------------------
 
 	console.log("1️⃣2️⃣  Complex chained query");
-	const complexQuery = await Model.table("users")
-		.select("id", "name", "email", "age")
+	const complexQuery = await Users.select("id", "name", "email", "age")
 		.where("active", 1)
 		.where("age", ">", 25)
 		.orderBy("age", "desc")
@@ -209,17 +191,14 @@ async function demonstrateQueries() {
 	// ------------------------------------------------------------------------
 
 	console.log("1️⃣3️⃣  Query related posts");
-	const posts = await Model.table("posts")
-		.where("published", 1)
+	const posts = await Posts.where("published", 1)
 		.orderBy("created_at", "desc")
 		.all();
 	console.log(`   Found ${posts.length} published posts`);
 	console.log();
 
 	// Get posts for a specific user
-	const userPosts = await Model.table("posts")
-		.where("user_id", 1)
-		.all();
+	const userPosts = await Posts.where("user_id", 1).all();
 	console.log(`   User 1 has ${userPosts.length} posts`);
 	console.log();
 }
@@ -232,7 +211,8 @@ async function main() {
 	console.log(`
 🚀 Bunary Basic ORM Example
 
-This example demonstrates the @bunary/orm package usage.
+This example demonstrates the @bunary/orm package usage with Model classes.
+Using Eloquent-like pattern: Users.select() instead of Model.table("users").select()
 `);
 
 	try {
