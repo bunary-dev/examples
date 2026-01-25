@@ -182,11 +182,36 @@ This example demonstrates the Eloquent-like pattern where you create model class
 - ✅ Cleaner, more readable code
 - ✅ IDE autocomplete support
 - ✅ Easier refactoring (change table name in one place)
+- ✅ Automatic exclusion of protected fields (passwords, secrets)
+- ✅ Automatic exclusion of timestamps (createdAt, updatedAt)
 
 **Example:**
 ```typescript
-// Instead of: Model.table("users").select("id", "name").all()
-// Use: Users.select("id", "name").all()
+// Instead of: Model.table("users").select("id", "name").exclude("password").all()
+// Use: Users.select("id", "name").all() // password automatically excluded!
+```
+
+**Protected Fields:**
+```typescript
+class Users extends BaseModel {
+  protected static tableName = "users";
+  protected static protected = ["password", "api_key"]; // Always excluded
+}
+
+// password and api_key are automatically excluded from all queries
+const users = await Users.all(); // No password in results!
+```
+
+**Timestamps:**
+```typescript
+class Users extends BaseModel {
+  protected static tableName = "users";
+  protected static timestamps = true; // Exclude createdAt, updatedAt (default)
+  // or
+  protected static timestamps = false; // Keep timestamps
+  // or
+  protected static timestamps = ["createdAt"]; // Only exclude createdAt
+}
 ```
 
 ## Related Documentation

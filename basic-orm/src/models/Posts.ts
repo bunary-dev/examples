@@ -16,7 +16,7 @@
  * ```
  */
 
-import { BaseModel } from "./BaseModel.js";
+import { BaseModel } from "@bunary/orm";
 
 export class Posts extends BaseModel {
 	protected static tableName = "posts";
