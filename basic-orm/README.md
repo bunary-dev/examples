@@ -26,6 +26,29 @@ bun run dev
 
 ### 1. Configuration
 
+Configure the ORM using `@bunary/core` (recommended):
+
+```typescript
+import { defineConfig } from "@bunary/core";
+
+defineConfig({
+  app: {
+    name: "Basic ORM Example",
+    env: "development",
+  },
+  orm: {
+    database: {
+      type: "sqlite",
+      sqlite: {
+        path: "./example.sqlite"
+      }
+    }
+  }
+});
+```
+
+Alternatively, you can use `setOrmConfig()` directly:
+
 ```typescript
 import { setOrmConfig } from "@bunary/orm";
 
