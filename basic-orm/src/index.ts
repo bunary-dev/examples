@@ -10,22 +10,30 @@
  * - Method chaining
  */
 
-import { setOrmConfig } from "@bunary/orm";
+import { defineConfig } from "@bunary/core";
 import { Database } from "bun:sqlite";
 import { Users, Posts } from "./models/index.js";
 
 // ============================================================================
-// ORM Configuration
+// Configuration (using @bunary/core)
 // ============================================================================
 
 const dbPath = "./example.sqlite";
 
-// Configure the ORM with SQLite
-setOrmConfig({
-	database: {
-		type: "sqlite",
-		sqlite: {
-			path: dbPath,
+// Configure Bunary with app and ORM settings
+// The ORM will automatically read from core config if no explicit config is set
+defineConfig({
+	app: {
+		name: "Basic ORM Example",
+		env: "development",
+		debug: true,
+	},
+	orm: {
+		database: {
+			type: "sqlite",
+			sqlite: {
+				path: dbPath,
+			},
 		},
 	},
 });

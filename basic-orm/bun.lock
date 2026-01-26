@@ -5,8 +5,8 @@
     "": {
       "name": "basic-orm",
       "dependencies": {
-        "@bunary/core": "^0.0.3",
-        "@bunary/orm": "^0.0.2",
+        "@bunary/core": "^0.0.5",
+        "@bunary/orm": "^0.0.5",
       },
       "devDependencies": {
         "@types/bun": "^1.3.6",
@@ -14,9 +14,9 @@
     },
   },
   "packages": {
-    "@bunary/core": ["@bunary/core@0.0.3", "", {}, "sha512-EVD+7xencsCMWzMGK27ZihnOtKger86//kWHBHQovLtlYCXqtn5DCnJ2/LqWxxLM9UR91mY0RJzwVnlyM6cFWQ=="],
+    "@bunary/core": ["@bunary/core@0.0.5", "", {}, "sha512-gHypUYkU2WMOAYW6oYZpmowG7hVte3Ol6WLoSET1Z1uB7tS7SMOb2uscyL05CydYNiHLHIkdV5Pzg+tEvo6U8g=="],
 
-    "@bunary/orm": ["@bunary/orm@0.0.2", "", { "dependencies": { "@bunary/core": "^0.0.2" } }, "sha512-iGlILdojBV0hCBKs3MeYvplWGnUOFd8w9/egDFJFUkTAvwDxkwVQbz+NMPfRT7UqQn0KrDcBVkYjBo8VI5MRdg=="],
+    "@bunary/orm": ["@bunary/orm@0.0.5", "", { "dependencies": { "@bunary/core": "^0.0.2" } }, "sha512-Dxq4QlQaE4fnJ45efaYMxXTd3HQlqRNrqgKTnor0pT2Io6grMwB6CW+GsiBZRO2gJzcIIIyODERa707GXkEi6Q=="],
 
     "@types/bun": ["@types/bun@1.3.6", "", { "dependencies": { "bun-types": "1.3.6" } }, "sha512-uWCv6FO/8LcpREhenN1d1b6fcspAB+cefwD7uti8C8VffIv0Um08TKMn98FynpTiU38+y2dUO55T11NgDt8VAA=="],
 
