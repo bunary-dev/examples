@@ -9,8 +9,8 @@
     "start": "bun run dist/index.js"
   },
   "dependencies": {
-    "@bunary/core": "^0.0.2",
-    "@bunary/orm": "file:../../orm"
+    "@bunary/core": "^0.0.3",
+    "@bunary/orm": "^0.0.2"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6"
