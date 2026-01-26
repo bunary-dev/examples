@@ -132,10 +132,12 @@ The example creates two tables:
 - `id` - INTEGER PRIMARY KEY
 - `name` - TEXT NOT NULL
 - `email` - TEXT NOT NULL UNIQUE
-- `password` - TEXT NOT NULL
+- `password` - TEXT NOT NULL (protected field, auto-excluded)
+- `secret_key` - TEXT (protected field, auto-excluded)
 - `age` - INTEGER
 - `active` - INTEGER DEFAULT 1
-- `created_at` - TEXT DEFAULT CURRENT_TIMESTAMP
+- `createdAt` - TEXT DEFAULT CURRENT_TIMESTAMP (timestamp, auto-excluded)
+- `updatedAt` - TEXT DEFAULT CURRENT_TIMESTAMP (timestamp, auto-excluded)
 
 ### `posts` table
 - `id` - INTEGER PRIMARY KEY
@@ -143,7 +145,8 @@ The example creates two tables:
 - `title` - TEXT NOT NULL
 - `content` - TEXT
 - `published` - INTEGER DEFAULT 0
-- `created_at` - TEXT DEFAULT CURRENT_TIMESTAMP
+- `createdAt` - TEXT DEFAULT CURRENT_TIMESTAMP (included, timestamps=false)
+- `updatedAt` - TEXT DEFAULT CURRENT_TIMESTAMP (included, timestamps=false)
 
 ## Project Structure
 
@@ -154,12 +157,13 @@ basic-orm/
 ├── src/
 │   ├── index.ts         # Main example code
 │   └── models/
-│       ├── BaseModel.ts # Base model class
-│       ├── Users.ts     # Users model
-│       ├── Posts.ts     # Posts model
+│       ├── Users.ts     # Users model (extends BaseModel from @bunary/orm)
+│       ├── Posts.ts     # Posts model (extends BaseModel from @bunary/orm)
 │       └── index.ts     # Model exports
 └── .gitignore          # Git ignore rules
 ```
+
+**Note:** `BaseModel` is imported from `@bunary/orm`, not a local file. See `Users.ts` and `Posts.ts` for examples.
 
 ## Available Scripts
 
