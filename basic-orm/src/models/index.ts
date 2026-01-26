@@ -1,7 +1,8 @@
 /**
  * Models - Export all models
  *
- * Note: BaseModel is now exported from @bunary/orm
+ * All models extend BaseModel from @bunary/orm.
+ * See Users.ts and Posts.ts for examples of BaseModel usage.
  */
 
 export { Users } from "./Users.js";
