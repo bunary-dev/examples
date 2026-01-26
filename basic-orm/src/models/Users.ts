@@ -23,6 +23,10 @@ import { BaseModel } from "@bunary/orm";
 
 export class Users extends BaseModel {
 	protected static tableName = "users";
+	// Protected fields: automatically excluded from all query results
+	// These columns must exist in the database schema: password, secret_key
 	protected static protected = ["password", "secret_key"];
-	protected static timestamps = true; // Exclude createdAt and updatedAt
+	// Timestamps: automatically excluded from all query results
+	// These columns must exist in the database schema: createdAt, updatedAt
+	protected static timestamps = true;
 }

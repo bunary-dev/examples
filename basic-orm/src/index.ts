@@ -45,7 +45,9 @@ function initializeDatabase() {
 	db.exec("DROP TABLE IF EXISTS users");
 
 	// Create users table
-	// Note: Using camelCase for timestamps (createdAt, updatedAt) to match BaseModel defaults
+	// Schema must match Users model configuration:
+	// - secret_key column (for protected fields exclusion)
+	// - createdAt, updatedAt columns in camelCase (for timestamps exclusion)
 	db.exec(`
 		CREATE TABLE users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,6 +63,8 @@ function initializeDatabase() {
 	`);
 
 	// Create posts table
+	// Schema includes createdAt, updatedAt but Posts model has timestamps=false
+	// so these columns will be included in query results (not excluded)
 	db.exec(`
 		CREATE TABLE posts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
