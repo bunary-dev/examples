@@ -10,8 +10,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@bunary/core": "^0.0.5",
-    "@bunary/orm": "^0.0.5"
+    "@bunary/core": "^0.0.7",
+    "@bunary/orm": "^0.0.14"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6"
