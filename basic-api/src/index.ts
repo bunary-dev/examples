@@ -204,7 +204,7 @@ app.delete("/resources/:id", (ctx) => {
 
 const port = parseInt(env("PORT", "3000"), 10);
 
-const server = app.listen(port);
+const server = app.listen({ port });
 
 console.log(`
 🚀 Bunary Basic API Example

@@ -15,7 +15,7 @@ import { env, isDev } from "@bunary/core";
 
 describe("Basic API Example", () => {
 	let app: ReturnType<typeof createApp>;
-	let server: ReturnType<typeof createApp["listen"]>;
+	let server: ReturnType<ReturnType<typeof createApp>["listen"]>;
 	let baseUrl: string;
 
 	beforeAll(() => {
@@ -91,7 +91,7 @@ describe("Basic API Example", () => {
 		});
 
 		app.post("/resources", async (ctx) => {
-			const body = await ctx.request.json();
+			const body = (await ctx.request.json()) as Record<string, unknown>;
 			return new Response(
 				JSON.stringify({
 					id: crypto.randomUUID(),
@@ -106,7 +106,7 @@ describe("Basic API Example", () => {
 		});
 
 		app.put("/resources/:id", async (ctx) => {
-			const body = await ctx.request.json();
+			const body = (await ctx.request.json()) as Record<string, unknown>;
 			return {
 				id: ctx.params.id,
 				...body,
@@ -122,8 +122,7 @@ describe("Basic API Example", () => {
 		});
 
 		// Start server on a random port for testing
-		const port = 0; // 0 = random available port
-		server = app.listen(port);
+		server = app.listen({ port: 0 });
 		baseUrl = `http://localhost:${server.port}`;
 	});
 
@@ -137,7 +136,11 @@ describe("Basic API Example", () => {
 	describe("GET /", () => {
 		it("should return welcome message with environment info", async () => {
 			const response = await fetch(`${baseUrl}/`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				message: string;
+				environment: string;
+				docs: string;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.message).toBe("Welcome to Bunary!");
@@ -149,7 +152,10 @@ describe("Basic API Example", () => {
 	describe("GET /health", () => {
 		it("should return health status with timestamp", async () => {
 			const response = await fetch(`${baseUrl}/health`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				status: string;
+				timestamp: string;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.status).toBe("healthy");
@@ -164,7 +170,11 @@ describe("Basic API Example", () => {
 		it("should extract path parameter and return user data", async () => {
 			const userId = "123";
 			const response = await fetch(`${baseUrl}/users/${userId}`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				id: string;
+				name: string;
+				email: string;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.id).toBe(userId);
@@ -175,7 +185,10 @@ describe("Basic API Example", () => {
 		it("should handle different user IDs", async () => {
 			const userId = "456";
 			const response = await fetch(`${baseUrl}/users/${userId}`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				id: string;
+				email: string;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.id).toBe(userId);
@@ -188,7 +201,12 @@ describe("Basic API Example", () => {
 			const userId = "1";
 			const postId = "42";
 			const response = await fetch(`${baseUrl}/users/${userId}/posts/${postId}`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				userId: string;
+				postId: string;
+				title: string;
+				content: string;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.userId).toBe(userId);
@@ -201,7 +219,13 @@ describe("Basic API Example", () => {
 	describe("GET /items", () => {
 		it("should handle query parameters with defaults", async () => {
 			const response = await fetch(`${baseUrl}/items`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				page: number;
+				limit: number;
+				search: string | null;
+				total: number;
+				items: Array<{ id: number; name: string }>;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.page).toBe(1);
@@ -213,7 +237,11 @@ describe("Basic API Example", () => {
 
 		it("should parse page and limit query parameters", async () => {
 			const response = await fetch(`${baseUrl}/items?page=2&limit=5`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				page: number;
+				limit: number;
+				items: Array<{ id: number }>;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.page).toBe(2);
@@ -225,7 +253,9 @@ describe("Basic API Example", () => {
 
 		it("should handle search query parameter", async () => {
 			const response = await fetch(`${baseUrl}/items?search=test`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				search: string | null;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.search).toBe("test");
@@ -233,7 +263,9 @@ describe("Basic API Example", () => {
 
 		it("should return null for empty search parameter", async () => {
 			const response = await fetch(`${baseUrl}/items?search=`);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				search: string | null;
+			};
 
 			expect(response.status).toBe(200);
 			expect(data.search).toBeNull();
@@ -256,7 +288,12 @@ describe("Basic API Example", () => {
 			expect(response.status).toBe(201);
 			expect(response.headers.get("Content-Type")).toBe("application/json");
 
-			const data = await response.json();
+			const data = (await response.json()) as {
+				id: string;
+				name: string;
+				type: string;
+				createdAt: string;
+			};
 			expect(data.id).toBeDefined();
 			expect(typeof data.id).toBe("string");
 			expect(data.name).toBe(body.name);
@@ -279,8 +316,8 @@ describe("Basic API Example", () => {
 				body: JSON.stringify(body),
 			});
 
-			const data1 = await response1.json();
-			const data2 = await response2.json();
+			const data1 = (await response1.json()) as { id: string };
+			const data2 = (await response2.json()) as { id: string };
 
 			expect(data1.id).not.toBe(data2.id);
 		});
@@ -301,7 +338,12 @@ describe("Basic API Example", () => {
 			});
 
 			expect(response.status).toBe(200);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				id: string;
+				name: string;
+				value: number;
+				updatedAt: string;
+			};
 			expect(data.id).toBe(resourceId);
 			expect(data.name).toBe(body.name);
 			expect(data.value).toBe(body.value);
@@ -318,7 +360,10 @@ describe("Basic API Example", () => {
 			});
 
 			expect(response.status).toBe(200);
-			const data = await response.json();
+			const data = (await response.json()) as {
+				message: string;
+				deletedAt: string;
+			};
 			expect(data.message).toBe(`Resource ${resourceId} deleted`);
 			expect(data.deletedAt).toBeDefined();
 			expect(typeof data.deletedAt).toBe("string");
