@@ -7,7 +7,7 @@
 
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 import { Database } from "bun:sqlite";
-import { defineConfig, clearBunaryConfig } from "@bunary/core";
+import { setOrmConfig, resetDriver } from "@bunary/orm";
 import { Users, Posts } from "../src/models/index.js";
 
 describe("Basic ORM Example", () => {
@@ -17,19 +17,12 @@ describe("Basic ORM Example", () => {
 		// Create a temporary test database
 		testDbPath = `/tmp/bunary-basic-orm-test-${Date.now()}.sqlite`;
 
-		// Configure Bunary with test database
-		defineConfig({
-			app: {
-				name: "Basic ORM Example Test",
-				env: "test",
-				debug: false,
-			},
-			orm: {
-				database: {
-					type: "sqlite",
-					sqlite: {
-						path: testDbPath,
-					},
+		// Configure ORM with test database
+		setOrmConfig({
+			database: {
+				type: "sqlite",
+				sqlite: {
+					path: testDbPath,
 				},
 			},
 		});
@@ -90,15 +83,13 @@ describe("Basic ORM Example", () => {
 	});
 
 	afterAll(async () => {
-		// Clean up test database
+		// Clean up driver and test database
 		try {
-			const db = new Database(testDbPath);
-			db.close();
+			resetDriver();
 			await Bun.file(testDbPath).unlink();
 		} catch {
 			// Ignore cleanup errors
 		}
-		clearBunaryConfig();
 	});
 
 	describe("Basic Queries", () => {
