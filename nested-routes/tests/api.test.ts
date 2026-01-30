@@ -11,7 +11,7 @@ import { registerRoutes } from "../src/routes/index.js";
 
 describe("Nested Routes Example", () => {
 	let app: ReturnType<typeof createApp>;
-	let server: ReturnType<typeof createApp["listen"]>;
+	let server: ReturnType<ReturnType<typeof createApp>["listen"]>;
 	let baseUrl: string;
 
 	beforeAll(() => {
@@ -30,7 +30,7 @@ describe("Nested Routes Example", () => {
 
 		// Start server on a random port for testing
 		const port = 0; // 0 = random available port
-		server = app.listen(port);
+		server = app.listen({ port });
 		baseUrl = `http://localhost:${server.port}`;
 	});
 
