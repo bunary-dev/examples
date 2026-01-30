@@ -83,18 +83,7 @@ basic-api/
 
 ## Configuration
 
-The `bunary.config.ts` file uses `defineConfig()` for type-safe configuration:
-
-```typescript
-import { defineConfig } from "@bunary/core";
-
-export default defineConfig({
-  app: {
-    name: "basic-api",
-    env: "development",
-  },
-});
-```
+The `bunary.config.ts` file uses `defineConfig()` from `@bunary/core` for type-safe configuration. The server is started with `app.listen({ port })` (options form supported by `@bunary/http`).
 
 ## Environment Variables
 
