@@ -1,0 +1,23 @@
+# Node / Bun
+node_modules/
+.pnp.*
+.yarn/install-state.gz
+
+# Build output
+dist/
+build/
+.turbo/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+bun-debug.log*
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
