@@ -12,3 +12,14 @@ describe("package.json", () => {
     expect((pkg as { private?: boolean }).private).toBe(true);
   });
 });
+
+describe("dependencies", () => {
+  it("targets the 0.4.0 @bunary baseline from npm", () => {
+    expect(pkg.dependencies["@bunary/core"]).toBe("^0.4.0");
+    expect(pkg.dependencies["@bunary/http"]).toBe("^0.4.0");
+  });
+
+  it("has a typecheck script", () => {
+    expect((pkg.scripts as Record<string, string>).typecheck).toBe("tsc --noEmit");
+  });
+});
