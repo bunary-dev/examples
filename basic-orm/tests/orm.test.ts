@@ -1,403 +1,195 @@
 /**
  * Basic ORM Example Tests
- * 
- * Comprehensive tests for ORM functionality in the basic-orm example.
- * Tests model queries, protected fields, timestamps, and method chaining.
+ *
+ * Every operation the example demonstrates, run against a fresh in-memory
+ * SQLite database per test (migrated with the example's own drizzle-kit
+ * migrations and seeded with its sample data).
  */
 
-import { describe, expect, it, beforeAll, afterAll } from "bun:test";
-import { Database } from "bun:sqlite";
-import { setOrmConfig, resetDriver } from "@bunary/orm";
-import { Users, Posts } from "../src/models/index.js";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { ModelNotFoundError } from "@bunary/orm";
+import { desc, eq, gt } from "drizzle-orm";
+import { type AppDatabase, bootDatabase } from "../src/db/database.js";
+import { posts, users } from "../src/db/schema.js";
+import { defineModels, type Models } from "../src/models.js";
+import { seed } from "../src/seed.js";
 
-describe("Basic ORM Example", () => {
-	let testDbPath: string;
+let db: AppDatabase;
+let models: Models;
 
-	beforeAll(() => {
-		// Create a temporary test database
-		testDbPath = `/tmp/bunary-basic-orm-test-${Date.now()}.sqlite`;
+beforeEach(async () => {
+	db = await bootDatabase(":memory:");
+	models = defineModels(db);
+	await seed(models);
+});
 
-		// Configure ORM with test database
-		setOrmConfig({
-			database: {
-				type: "sqlite",
-				sqlite: {
-					path: testDbPath,
-				},
-			},
-		});
+afterEach(() => {
+	db.$client.close();
+});
 
-		// Initialize test database with schema and data
-		const db = new Database(testDbPath);
-
-		// Create users table
-		db.exec(`
-			CREATE TABLE users (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL,
-				email TEXT NOT NULL UNIQUE,
-				password TEXT NOT NULL,
-				secret_key TEXT,
-				age INTEGER,
-				active INTEGER DEFAULT 1,
-				createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-				updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
-			);
-		`);
-
-		// Create posts table
-		db.exec(`
-			CREATE TABLE posts (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				user_id INTEGER NOT NULL,
-				title TEXT NOT NULL,
-				content TEXT,
-				published INTEGER DEFAULT 0,
-				createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-				updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
-				FOREIGN KEY (user_id) REFERENCES users(id)
-			);
-		`);
-
-		// Insert sample users
-		db.exec(`
-			INSERT INTO users (name, email, password, secret_key, age, active) VALUES
-				('John Doe', 'john@example.com', 'secret123', 'key123', 25, 1),
-				('Jane Smith', 'jane@example.com', 'secret456', 'key456', 30, 1),
-				('Bob Wilson', 'bob@example.com', 'secret789', 'key789', 28, 0),
-				('Alice Brown', 'alice@example.com', 'secret012', 'key012', 35, 1),
-				('Charlie Davis', 'charlie@example.com', 'secret345', 'key345', 22, 1);
-		`);
-
-		// Insert sample posts
-		db.exec(`
-			INSERT INTO posts (user_id, title, content, published) VALUES
-				(1, 'First Post', 'This is my first post!', 1),
-				(1, 'Second Post', 'Another post by John', 1),
-				(2, 'Hello World', 'Jane says hello', 1),
-				(2, 'Draft Post', 'This is a draft', 0),
-				(4, 'Alice Post', 'Content from Alice', 1);
-		`);
-
-		db.close();
+describe("setup", () => {
+	it("applies the drizzle-kit migrations", () => {
+		const tables = db.$client
+			.query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+			.all()
+			.map((row) => row.name);
+		expect(tables).toContain("users");
+		expect(tables).toContain("posts");
+		expect(tables).toContain("__drizzle_migrations");
 	});
 
-	afterAll(async () => {
-		// Clean up driver and test database
-		try {
-			resetDriver();
-			await Bun.file(testDbPath).unlink();
-		} catch {
-			// Ignore cleanup errors
-		}
+	it("seeds the sample data", async () => {
+		expect(await db.$count(users)).toBe(5);
+		expect(await db.$count(posts)).toBe(5);
+	});
+});
+
+describe("reading", () => {
+	it("find() returns an instance or null", async () => {
+		const user = await models.User.find(1);
+		expect(user?.name).toBe("John Doe");
+		expect(await models.User.find(999)).toBeNull();
 	});
 
-	describe("Basic Queries", () => {
-		it("should find a user by ID", async () => {
-			const user = await Users.find(1);
-
-			expect(user).not.toBeNull();
-			expect(user?.id).toBe(1);
-			expect(user?.name).toBe("John Doe");
-			expect(user?.email).toBe("john@example.com");
-		});
-
-		it("should return null for non-existent user", async () => {
-			const user = await Users.find(999);
-			expect(user).toBeNull();
-		});
-
-		it("should get all users", async () => {
-			const users = await Users.all();
-
-			expect(users).toBeDefined();
-			expect(Array.isArray(users)).toBe(true);
-			expect(users.length).toBe(5);
-		});
-
-		it("should select specific columns", async () => {
-			const users = await Users.select("id", "name", "email").all();
-
-			expect(users.length).toBeGreaterThan(0);
-			const firstUser = users[0];
-			expect(firstUser).toHaveProperty("id");
-			expect(firstUser).toHaveProperty("name");
-			expect(firstUser).toHaveProperty("email");
-			// Should not have other columns
-			expect(firstUser).not.toHaveProperty("age");
-		});
+	it("findOrFail() throws ModelNotFoundError", async () => {
+		const error = await models.User.findOrFail(999).catch((e: unknown) => e);
+		expect(error).toBeInstanceOf(ModelNotFoundError);
+		expect((error as ModelNotFoundError).table).toBe("users");
 	});
 
-	describe("Protected Fields Exclusion", () => {
-		it("should automatically exclude password and secret_key from results", async () => {
-			const user = await Users.find(1);
-
-			expect(user).not.toBeNull();
-			expect(user).not.toHaveProperty("password");
-			expect(user).not.toHaveProperty("secret_key");
-		});
-
-		it("should exclude protected fields from all() results", async () => {
-			const users = await Users.all();
-
-			expect(users.length).toBeGreaterThan(0);
-			users.forEach((user) => {
-				expect(user).not.toHaveProperty("password");
-				expect(user).not.toHaveProperty("secret_key");
-			});
-		});
-
-		it("should exclude protected fields even when using select()", async () => {
-			const users = await Users.select("id", "name", "email", "password").all();
-
-			expect(users.length).toBeGreaterThan(0);
-			users.forEach((user) => {
-				// password should be excluded even if selected
-				expect(user).not.toHaveProperty("password");
-				expect(user).not.toHaveProperty("secret_key");
-			});
-		});
+	it("where().get() and .first() take Drizzle conditions", async () => {
+		const over25 = await models.User.where(gt(users.age, 25)).get();
+		expect(over25.map((u) => u.name).sort()).toEqual([
+			"Alice Brown",
+			"Bob Wilson",
+			"Jane Smith",
+		]);
+		const jane = await models.User.where(eq(users.email, "jane@example.com")).first();
+		expect(jane?.id).toBe(2);
 	});
 
-	describe("Timestamps Exclusion", () => {
-		it("should automatically exclude createdAt and updatedAt from Users (timestamps=true)", async () => {
-			const user = await Users.find(1);
+	it("query() covers ordering and limits", async () => {
+		const oldest = await models.User.query().orderBy(desc(users.age)).limit(2);
+		expect(oldest.map((u) => u.name)).toEqual(["Alice Brown", "Jane Smith"]);
+	});
+});
 
-			expect(user).not.toBeNull();
-			expect(user).not.toHaveProperty("createdAt");
-			expect(user).not.toHaveProperty("updatedAt");
-		});
-
-		it("should include createdAt and updatedAt in Posts (timestamps=false)", async () => {
-			const post = await Posts.find(1);
-
-			expect(post).not.toBeNull();
-			expect(post).toHaveProperty("createdAt");
-			expect(post).toHaveProperty("updatedAt");
-		});
-
-		it("should exclude timestamps from all Users results", async () => {
-			const users = await Users.all();
-
-			expect(users.length).toBeGreaterThan(0);
-			users.forEach((user) => {
-				expect(user).not.toHaveProperty("createdAt");
-				expect(user).not.toHaveProperty("updatedAt");
-			});
-		});
-
-		it("should include timestamps in all Posts results", async () => {
-			const posts = await Posts.all();
-
-			expect(posts.length).toBeGreaterThan(0);
-			posts.forEach((post) => {
-				expect(post).toHaveProperty("createdAt");
-				expect(post).toHaveProperty("updatedAt");
-			});
-		});
+describe("hidden columns", () => {
+	it("leaves password out of toJSON() but keeps it on the instance", async () => {
+		const user = await models.User.findOrFail(1);
+		expect(user.password).toBeString();
+		expect(user.toJSON()).not.toHaveProperty("password");
+		expect(JSON.parse(JSON.stringify(user))).not.toHaveProperty("password");
 	});
 
-	describe("Where Clauses", () => {
-		it("should filter by equality", async () => {
-			const activeUsers = await Users.where("active", 1).all();
+	it("hashes the password in the creating event", async () => {
+		const user = await models.User.findOrFail(1);
+		expect(user.password).not.toBe("secret123");
+		expect(await Bun.password.verify("secret123", user.password)).toBe(true);
+	});
+});
 
-			expect(activeUsers.length).toBeGreaterThan(0);
-			activeUsers.forEach((user) => {
-				expect(user.active).toBe(1);
-			});
+describe("CRUD with dirty tracking", () => {
+	it("create() inserts and returns a clean instance with database defaults", async () => {
+		const user = await models.User.create({
+			name: "Dana Lee",
+			email: "dana@example.com",
+			password: "pw",
+			age: 41,
 		});
-
-		it("should filter with comparison operators", async () => {
-			const youngUsers = await Users.where("age", "<", 30).all();
-
-			expect(youngUsers.length).toBeGreaterThan(0);
-			youngUsers.forEach((user) => {
-				expect(user.age).toBeLessThan(30);
-			});
-		});
-
-		it("should chain multiple where clauses", async () => {
-			const users = await Users.where("active", 1).where("age", ">", 25).all();
-
-			expect(users.length).toBeGreaterThan(0);
-			users.forEach((user) => {
-				expect(user.active).toBe(1);
-				expect(user.age).toBeGreaterThan(25);
-			});
-		});
+		if (!user) throw new Error("create was cancelled");
+		expect(user.id).toBe(6);
+		expect(user.active).toBe(true);
+		expect(user.createdAt).toBeInstanceOf(Date);
+		expect(user.isDirty()).toBe(false);
 	});
 
-	describe("Limit and Offset", () => {
-		it("should limit results", async () => {
-			const users = await Users.limit(2).all();
+	it("save() writes only the dirty columns", async () => {
+		const user = await models.User.findOrFail(1);
+		user.name = "John Q. Doe";
+		expect(user.isDirty("name")).toBe(true);
+		expect(user.getDirty()).toEqual({ name: "John Q. Doe" });
 
-			expect(users.length).toBe(2);
-		});
+		// Another instance of the same row changes a different column.
+		const other = await models.User.findOrFail(1);
+		other.age = 26;
+		await other.save();
 
-		it("should offset results", async () => {
-			const allUsers = await Users.orderBy("id", "asc").all();
-			const offsetUsers = await Users.orderBy("id", "asc").offset(2).all();
-
-			expect(offsetUsers.length).toBeLessThan(allUsers.length);
-			if (offsetUsers.length > 0 && allUsers.length > 2) {
-				expect(offsetUsers[0].id).toBe(allUsers[2].id);
-			}
-		});
-
-		it("should combine offset and limit for pagination", async () => {
-			const page2 = await Users.orderBy("id", "asc").offset(2).limit(2).all();
-
-			expect(page2.length).toBeLessThanOrEqual(2);
-		});
+		await user.save();
+		expect(user.isDirty()).toBe(false);
+		const reloaded = await models.User.findOrFail(1);
+		expect(reloaded.name).toBe("John Q. Doe");
+		expect(reloaded.age).toBe(26);
 	});
 
-	describe("Order By", () => {
-		it("should order results ascending", async () => {
-			const users = await Users.orderBy("name", "asc").all();
-
-			expect(users.length).toBeGreaterThan(1);
-			for (let i = 1; i < users.length; i++) {
-				expect(users[i].name >= users[i - 1].name).toBe(true);
-			}
-		});
-
-		it("should order results descending", async () => {
-			const users = await Users.orderBy("age", "desc").all();
-
-			expect(users.length).toBeGreaterThan(1);
-			for (let i = 1; i < users.length; i++) {
-				expect(users[i].age <= users[i - 1].age).toBe(true);
-			}
-		});
+	it("refresh() discards unsaved changes", async () => {
+		const user = await models.User.findOrFail(1);
+		user.name = "Unsaved";
+		await user.refresh();
+		expect(user.name).toBe("John Doe");
+		expect(user.isDirty()).toBe(false);
 	});
 
-	describe("First and Count", () => {
-		it("should get first record", async () => {
-			const firstUser = await Users.orderBy("id", "asc").first();
+	it("delete() removes the row", async () => {
+		const user = await models.User.findOrFail(5);
+		expect(await user.delete()).toBe(true);
+		expect(await models.User.find(5)).toBeNull();
+	});
+});
 
-			expect(firstUser).not.toBeNull();
-			expect(firstUser?.id).toBe(1);
-		});
-
-		it("should return null when no records match", async () => {
-			const user = await Users.where("id", 999).first();
-			expect(user).toBeNull();
-		});
-
-		it("should count all records", async () => {
-			const total = await Users.count();
-			expect(total).toBe(5);
-		});
-
-		it("should count filtered records", async () => {
-			const activeCount = await Users.where("active", 1).count();
-			expect(activeCount).toBeGreaterThan(0);
-			expect(activeCount).toBeLessThanOrEqual(5);
-		});
+describe("scopes", () => {
+	it("active() and olderThan() chain", async () => {
+		const active = await models.User.active().get();
+		expect(active).toHaveLength(4);
+		const activeOver25 = await models.User.active().olderThan(25).get();
+		expect(activeOver25.map((u) => u.name).sort()).toEqual(["Alice Brown", "Jane Smith"]);
 	});
 
-	describe("Method Chaining", () => {
-		it("should chain select, where, orderBy, and limit", async () => {
-			const results = await Users.select("id", "name", "email", "age", "active")
-				.where("active", 1)
-				.where("age", ">", 25)
-				.orderBy("age", "desc")
-				.limit(3)
-				.all();
+	it("published() filters posts", async () => {
+		expect(await models.Post.published().get()).toHaveLength(4);
+	});
+});
 
-			expect(results.length).toBeLessThanOrEqual(3);
-			if (results.length > 0) {
-				// Verify all results are active
-				results.forEach((user) => {
-					expect(user.active).toBe(1);
-					expect(user.age).toBeGreaterThan(25);
-				});
+describe("soft deletes", () => {
+	it("delete() trashes, withTrashed()/onlyTrashed() find it, restore() brings it back", async () => {
+		const post = await models.Post.findOrFail(4);
+		await post.delete();
+		expect(post.trashed()).toBe(true);
+		expect(await models.Post.find(4)).toBeNull();
+		expect(await db.$count(posts)).toBe(5); // still in the table
 
-				// Verify ordering (descending by age)
-				for (let i = 1; i < results.length; i++) {
-					expect(results[i].age <= results[i - 1].age).toBe(true);
-				}
-			}
-		});
+		expect(await models.Post.withTrashed().get()).toHaveLength(5);
+		const trashed = await models.Post.onlyTrashed().get();
+		expect(trashed.map((p) => p.id)).toEqual([4]);
 
-		it("should chain where, orderBy, offset, and limit", async () => {
-			const results = await Users.where("active", 1)
-				.orderBy("id", "asc")
-				.offset(1)
-				.limit(2)
-				.all();
-
-			expect(results.length).toBeLessThanOrEqual(2);
-		});
+		await post.restore();
+		expect(post.trashed()).toBe(false);
+		expect(await models.Post.find(4)).not.toBeNull();
 	});
 
-	describe("Posts Model", () => {
-		it("should query posts", async () => {
-			const posts = await Posts.all();
+	it("forceDelete() really deletes", async () => {
+		const post = await models.Post.findOrFail(4);
+		await post.forceDelete();
+		expect(await models.Post.withTrashed().find(4)).toBeNull();
+		expect(await db.$count(posts)).toBe(4);
+	});
+});
 
-			expect(posts).toBeDefined();
-			expect(Array.isArray(posts)).toBe(true);
-			expect(posts.length).toBeGreaterThan(0);
-		});
-
-		it("should filter posts by user_id", async () => {
-			const userPosts = await Posts.where("user_id", 1).all();
-
-			expect(userPosts.length).toBeGreaterThan(0);
-			userPosts.forEach((post) => {
-				expect(post.user_id).toBe(1);
-			});
-		});
-
-		it("should filter posts by published status", async () => {
-			const publishedPosts = await Posts.where("published", 1).all();
-
-			expect(publishedPosts.length).toBeGreaterThan(0);
-			publishedPosts.forEach((post) => {
-				expect(post.published).toBe(1);
-			});
-		});
-
-		it("should include timestamps in Posts results", async () => {
-			const post = await Posts.find(1);
-
-			expect(post).not.toBeNull();
-			expect(post).toHaveProperty("createdAt");
-			expect(post).toHaveProperty("updatedAt");
-		});
+describe("relations with()", () => {
+	it("eager-loads a user's posts as Post instances", async () => {
+		const john = await models.User.with({ posts: models.Post }).findOrFail(1);
+		expect(john.posts.map((p) => p.title).sort()).toEqual(["First Post", "Second Post"]);
+		expect(typeof john.posts[0]?.save).toBe("function");
+		expect(john.toJSON().posts).toHaveLength(2);
+		expect(john.toJSON()).not.toHaveProperty("password");
 	});
 
-	describe("Complex Query Patterns", () => {
-		it("should handle complex query with multiple conditions", async () => {
-			const results = await Users.select("id", "name", "email", "age")
-				.where("active", 1)
-				.where("age", ">", 25)
-				.orderBy("age", "desc")
-				.limit(3)
-				.all();
+	it("eager-loads a post's author and leaves out trashed posts", async () => {
+		const post = await models.Post.with({ author: models.User }).findOrFail(3);
+		expect(post.author.name).toBe("Jane Smith");
 
-			expect(results.length).toBeLessThanOrEqual(3);
-			results.forEach((user) => {
-				expect(user).toHaveProperty("id");
-				expect(user).toHaveProperty("name");
-				expect(user).toHaveProperty("email");
-				expect(user).toHaveProperty("age");
-				expect(user).not.toHaveProperty("password");
-				expect(user).not.toHaveProperty("secret_key");
-				expect(user).not.toHaveProperty("createdAt");
-				expect(user).not.toHaveProperty("updatedAt");
-			});
-		});
-
-		it("should handle query with exclude", async () => {
-			const users = await Users.exclude("age").all();
-
-			expect(users.length).toBeGreaterThan(0);
-			users.forEach((user) => {
-				expect(user).not.toHaveProperty("age");
-				expect(user).not.toHaveProperty("password");
-				expect(user).not.toHaveProperty("secret_key");
-			});
-		});
+		await (await models.Post.findOrFail(4)).delete();
+		const jane = await models.User.with({ posts: models.Post }).findOrFail(2);
+		expect(jane.posts.map((p) => p.id)).toEqual([3]);
 	});
 });
