@@ -1,6 +1,7 @@
 {
   "name": "basic-api",
   "version": "0.0.2",
+  "private": true,
   "type": "module",
   "description": "Basic API example demonstrating Bunary framework features",
   "scripts": {

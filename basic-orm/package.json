@@ -1,6 +1,7 @@
 {
   "name": "basic-orm",
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "description": "Basic ORM example demonstrating @bunary/orm usage",
   "scripts": {
