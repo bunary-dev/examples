@@ -21,3 +21,6 @@ bun-debug.log*
 .vscode/
 .idea/
 .DS_Store
+
+# bunker / dev-workflow worktrees
+.worktrees/
