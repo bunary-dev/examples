@@ -12,6 +12,7 @@ Example projects and tutorials for the Bunary framework.
 | [auth](./auth) | `@bunary/auth` 0.4: user provider with `Bun.password` hashes, JWT guard (`/login`, `/me`), encrypted session cookie guard, `requireAuth()` route groups, secrets from `env()` (`@bunary/auth`/`@bunary/http`/`@bunary/core` ^0.4.0) |
 | [realtime](./realtime) | `@bunary/http` 0.4 realtime: a WebSocket chat on `router.ws()` (rooms, params in `ws.data`, token middleware rejecting the upgrade with 401) and Server-Sent Events with `sse()` (`@bunary/http`/`@bunary/core` ^0.4.0) |
 | [full-app](./full-app) | One app wired through `@bunary/core` providers: `httpProvider` + `ormProvider` (SQLite, drizzle-kit migrations) + `authProvider` in a notes API with register/login (JWT), per-user notes on a `defineModel` model with soft deletes and a hidden password, a `UserProvider` over the orm model, route validation and `cors()` (`@bunary/core`/`http`/`orm`/`auth` ^0.4.0) |
+| [cli-commands](./cli-commands) | A custom project command, `bunary hello [name] [--utc]`: scaffolded with `make:command`, registered in `config/bunary.ts` with `defineConfig({ commands })`, run with `bunx bunary hello`; greeting with the date and time via `Intl.DateTimeFormat` (`@bunary/core` ^0.4.0, `@bunary/cli` ^0.4.3) |
 
 ## Running Examples
 
@@ -40,3 +41,6 @@ See [realtime/README.md](./realtime/README.md).
 `full-app` migrates its SQLite database with `bun run db:setup` (`dev` does it first) and reads
 `JWT_SECRET` from the environment (dev-only default outside production).
 See [full-app/README.md](./full-app/README.md).
+
+`cli-commands` has no server: run its command with `bunx bunary hello` instead of `bun run dev`.
+See [cli-commands/README.md](./cli-commands/README.md).
