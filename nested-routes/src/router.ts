@@ -6,12 +6,13 @@
  *   router                      health          GET /
  *   └─ /api        (api.)
  *      ├─ /users   (users.)     index/store     GET|POST /api/users
- *      │  │                     show/destroy    GET|DELETE /api/users/:id
- *      │  └─ /:userId/posts (posts.)  index     GET /api/users/:userId/posts
+ *      │  │                     show/destroy    GET|DELETE /api/users/:user
+ *      │  └─ /:user/posts (posts.)  index       GET /api/users/:user/posts
+ *      │                            show        GET /api/users/:user/posts/:post
  *      └─ /posts   (posts.)     index/store     GET|POST /api/posts
- *                               show            GET /api/posts/:id
+ *                               show            GET /api/posts/:post
  *
- * So `router.route("api.users.posts.index", { userId: 1 })` is
+ * So `router.route("api.users.posts.index", { user: 1 })` is
  * `/api/users/1/posts`. Pass `basePath` to mount everything under a prefix.
  */
 

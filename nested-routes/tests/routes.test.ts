@@ -13,12 +13,13 @@ const ROUTES: RouteInfo[] = [
 	{ name: "health", method: "GET", path: "/" },
 	{ name: "api.users.index", method: "GET", path: "/api/users" },
 	{ name: "api.users.store", method: "POST", path: "/api/users" },
-	{ name: "api.users.show", method: "GET", path: "/api/users/:id" },
-	{ name: "api.users.destroy", method: "DELETE", path: "/api/users/:id" },
-	{ name: "api.users.posts.index", method: "GET", path: "/api/users/:userId/posts" },
+	{ name: "api.users.show", method: "GET", path: "/api/users/:user" },
+	{ name: "api.users.destroy", method: "DELETE", path: "/api/users/:user" },
+	{ name: "api.users.posts.index", method: "GET", path: "/api/users/:user/posts" },
+	{ name: "api.users.posts.show", method: "GET", path: "/api/users/:user/posts/:post" },
 	{ name: "api.posts.index", method: "GET", path: "/api/posts" },
 	{ name: "api.posts.store", method: "POST", path: "/api/posts" },
-	{ name: "api.posts.show", method: "GET", path: "/api/posts/:id" },
+	{ name: "api.posts.show", method: "GET", path: "/api/posts/:post" },
 ];
 
 describe("route groups", () => {
@@ -47,13 +48,14 @@ describe("named routes", () => {
 		["health", undefined, "/"],
 		["api.users.index", undefined, "/api/users"],
 		["api.users.store", undefined, "/api/users"],
-		["api.users.show", { id: 1 }, "/api/users/1"],
-		["api.users.destroy", { id: 2 }, "/api/users/2"],
-		["api.users.posts.index", { userId: 1 }, "/api/users/1/posts"],
+		["api.users.show", { user: 1 }, "/api/users/1"],
+		["api.users.destroy", { user: 2 }, "/api/users/2"],
+		["api.users.posts.index", { user: 1 }, "/api/users/1/posts"],
+		["api.users.posts.show", { user: 1, post: 2 }, "/api/users/1/posts/2"],
 		["api.posts.index", undefined, "/api/posts"],
 		["api.posts.index", { authorId: 1 }, "/api/posts?authorId=1"],
 		["api.posts.store", undefined, "/api/posts"],
-		["api.posts.show", { id: 3 }, "/api/posts/3"],
+		["api.posts.show", { post: 3 }, "/api/posts/3"],
 	];
 
 	for (const [name, params, url] of cases) {
@@ -64,8 +66,8 @@ describe("named routes", () => {
 
 	it("generated URLs resolve to their routes", async () => {
 		const fresh = buildRouter();
-		const show = await call(fresh, "GET", fresh.route("api.users.show", { id: 1 }));
-		const nested = await call(fresh, "GET", fresh.route("api.users.posts.index", { userId: 2 }));
+		const show = await call(fresh, "GET", fresh.route("api.users.show", { user: 1 }));
+		const nested = await call(fresh, "GET", fresh.route("api.users.posts.index", { user: 2 }));
 
 		expect((await show.json()).user.name).toBe("Alice");
 		expect((await nested.json()).posts).toHaveLength(1);
@@ -98,7 +100,7 @@ describe("basePath", () => {
 	});
 
 	it("includes the base path in generated URLs", async () => {
-		expect(router.route("api.users.show", { id: 1 })).toBe("/v1/api/users/1");
+		expect(router.route("api.users.show", { user: 1 })).toBe("/v1/api/users/1");
 
 		const health = await (await call(router, "GET", "/v1")).json();
 		expect(health.endpoints).toEqual(["/v1/api/users", "/v1/api/posts"]);

@@ -11,7 +11,7 @@
 	},
 	"dependencies": {
 		"@bunary/core": "^0.4.0",
-		"@bunary/http": "^0.4.0"
+		"@bunary/http": "^0.7.1"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.4.2",
