@@ -1,136 +1,60 @@
 /**
  * Basic API Example Tests
- * 
- * Comprehensive tests for all endpoints in the basic-api example.
- * Tests route handlers, path parameters, query parameters, and middleware.
+ *
+ * Boots the example's real application (src/app.ts) and serves it on an
+ * ephemeral port, so every request below exercises the routes, middleware
+ * and config the example ships.
  */
 
-import { describe, expect, it, beforeAll, afterAll } from "bun:test";
-import { createApp } from "@bunary/http";
-import { env, isDev } from "@bunary/core";
-
-// Import the app setup from the example
-// We'll need to extract the app creation and routes to make it testable
-// For now, we'll recreate the app structure in tests
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import type { Application } from "@bunary/core";
+import type { BunaryServer } from "@bunary/http";
+import { RouterToken, serve } from "@bunary/http/provider";
+import { createBasicApi, router } from "../src/app";
 
 describe("Basic API Example", () => {
-	let app: ReturnType<typeof createApp>;
-	let server: ReturnType<ReturnType<typeof createApp>["listen"]>;
+	let app: Application;
+	let server: BunaryServer;
 	let baseUrl: string;
 
-	beforeAll(() => {
-		// Create app instance (same as example)
-		app = createApp();
-
-		// Add logging middleware (same as example)
-		app.use(async (ctx, next) => {
-			const method = ctx.request.method;
-			const url = new URL(ctx.request.url);
-			const start = Date.now();
-
-			const response = await next();
-
-			const duration = Date.now() - start;
-			console.log(`${method} ${url.pathname} - ${duration}ms`);
-
-			return response;
-		});
-
-		// Register all routes (same as example)
-		app.get("/health", () => {
-			return {
-				status: "healthy",
-				timestamp: new Date().toISOString(),
-			};
-		});
-
-		app.get("/", () => {
-			return {
-				message: "Welcome to Bunary!",
-				environment: isDev() ? "development" : "production",
-				docs: "/docs",
-			};
-		});
-
-		app.get("/users/:id", (ctx) => {
-			const userId = ctx.params.id;
-			return {
-				id: userId,
-				name: `User ${userId}`,
-				email: `user${userId}@example.com`,
-			};
-		});
-
-		app.get("/users/:userId/posts/:postId", (ctx) => {
-			const { userId, postId } = ctx.params;
-			return {
-				userId,
-				postId,
-				title: `Post ${postId} by User ${userId}`,
-				content: "This is a sample post content.",
-			};
-		});
-
-		app.get("/items", (ctx) => {
-			const page = parseInt(ctx.query.get("page") || "1", 10);
-			const limit = parseInt(ctx.query.get("limit") || "10", 10);
-			const search = ctx.query.get("search") || "";
-
-			const items = Array.from({ length: limit }, (_, i) => ({
-				id: (page - 1) * limit + i + 1,
-				name: `Item ${(page - 1) * limit + i + 1}`,
-			}));
-
-			return {
-				page,
-				limit,
-				search: search || null,
-				total: 100,
-				items,
-			};
-		});
-
-		app.post("/resources", async (ctx) => {
-			const body = (await ctx.request.json()) as Record<string, unknown>;
-			return new Response(
-				JSON.stringify({
-					id: crypto.randomUUID(),
-					...body,
-					createdAt: new Date().toISOString(),
-				}),
-				{
-					status: 201,
-					headers: { "Content-Type": "application/json" },
-				}
-			);
-		});
-
-		app.put("/resources/:id", async (ctx) => {
-			const body = (await ctx.request.json()) as Record<string, unknown>;
-			return {
-				id: ctx.params.id,
-				...body,
-				updatedAt: new Date().toISOString(),
-			};
-		});
-
-		app.delete("/resources/:id", (ctx) => {
-			return {
-				message: `Resource ${ctx.params.id} deleted`,
-				deletedAt: new Date().toISOString(),
-			};
-		});
-
-		// Start server on a random port for testing
-		server = app.listen({ port: 0 });
+	beforeAll(async () => {
+		app = await createBasicApi();
+		server = serve(app, { port: 0 });
 		baseUrl = `http://localhost:${server.port}`;
 	});
 
 	afterAll(() => {
-		// Clean up server
-		if (server) {
-			server.stop();
-		}
+		server?.stop();
+	});
+
+	describe("Application", () => {
+		it("boots with the config from bunary.config.ts", () => {
+			expect(app.booted).toBe(true);
+			expect(app.config.get("app.name")).toBe("basic-api");
+		});
+
+		it("mounts the example router via httpProvider", () => {
+			expect(app.get(RouterToken)).toBe(router);
+		});
+
+		it("registers exactly the documented routes", () => {
+			const routes = router
+				.getRoutes()
+				.map((r) => `${r.method} ${r.path}`)
+				.sort();
+			expect(routes).toEqual(
+				[
+					"GET /",
+					"GET /health",
+					"GET /users/:id",
+					"GET /users/:userId/posts/:postId",
+					"GET /items",
+					"POST /resources",
+					"PUT /resources/:id",
+					"DELETE /resources/:id",
+				].sort(),
+			);
+		});
 	});
 
 	describe("GET /", () => {
@@ -138,13 +62,15 @@ describe("Basic API Example", () => {
 			const response = await fetch(`${baseUrl}/`);
 			const data = (await response.json()) as {
 				message: string;
+				app: string;
 				environment: string;
 				docs: string;
 			};
 
 			expect(response.status).toBe(200);
 			expect(data.message).toBe("Welcome to Bunary!");
-			expect(data.environment).toBeDefined();
+			expect(data.app).toBe("basic-api");
+			expect(["development", "production"]).toContain(data.environment);
 			expect(data.docs).toBe("/docs");
 		});
 	});
@@ -286,7 +212,7 @@ describe("Basic API Example", () => {
 			});
 
 			expect(response.status).toBe(201);
-			expect(response.headers.get("Content-Type")).toBe("application/json");
+			expect(response.headers.get("Content-Type")).toContain("application/json");
 
 			const data = (await response.json()) as {
 				id: string;
