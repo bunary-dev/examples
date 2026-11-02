@@ -10,6 +10,7 @@ Example projects and tutorials for the Bunary framework.
 | [nested-routes](./nested-routes) | Nested route groups, named routes and `basePath` with `createRouter` (`@bunary/core` / `@bunary/http` ^0.4.0) |
 | [basic-orm](./basic-orm) | `@bunary/orm` 0.4 models on Drizzle: `defineModel`, CRUD with dirty tracking, scopes, soft deletes, relations, drizzle-kit migrations |
 | [auth](./auth) | `@bunary/auth` 0.4: user provider with `Bun.password` hashes, JWT guard (`/login`, `/me`), encrypted session cookie guard, `requireAuth()` route groups, secrets from `env()` (`@bunary/auth`/`@bunary/http`/`@bunary/core` ^0.4.0) |
+| [realtime](./realtime) | `@bunary/http` 0.4 realtime: a WebSocket chat on `router.ws()` (rooms, params in `ws.data`, token middleware rejecting the upgrade with 401) and Server-Sent Events with `sse()` (`@bunary/http`/`@bunary/core` ^0.4.0) |
 
 ## Running Examples
 
@@ -31,3 +32,6 @@ See [basic-orm/README.md](./basic-orm/README.md).
 
 `auth` reads `JWT_SECRET` and `SESSION_SECRET` from the environment, with dev-only defaults that
 production refuses. See [auth/README.md](./auth/README.md).
+
+`realtime` needs a chat token (`CHAT_TOKEN`, dev-only default outside production) to open a WebSocket.
+See [realtime/README.md](./realtime/README.md).
