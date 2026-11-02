@@ -7,7 +7,7 @@ Example projects and tutorials for the Bunary framework.
 | Example | Description |
 |---------|-------------|
 | [basic-api](./basic-api) | Core features: routes, params, middleware, JSON responses, core app + config (`@bunary/core`/`@bunary/http` ^0.4.0) |
-| [nested-routes](./nested-routes) | Organizing routes into separate modules with prefixes |
+| [nested-routes](./nested-routes) | Nested route groups, named routes and `basePath` with `createRouter` (`@bunary/core` / `@bunary/http` ^0.4.0) |
 | [basic-orm](./basic-orm) | ORM usage: database queries, Model API, query builder methods |
 
 ## Running Examples
