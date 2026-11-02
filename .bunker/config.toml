@@ -1,8 +1,9 @@
-# runs in each worktree before the agent: each example is its own project with its own lockfile
-setup = "for d in basic-api basic-orm nested-routes; do (cd $d && bun install --frozen-lockfile) || exit 1; done"
+# runs in each worktree before the agent: each example is its own project with its own lockfile.
+# Every top-level folder with a package.json is an example, so new examples are picked up automatically (#45).
+setup = "for d in */; do [ \"$d\" = node_modules/ ] && continue; [ -f \"$d/package.json\" ] || continue; (cd \"$d\" && bun install --frozen-lockfile) || exit 1; done"
 
 # must pass before anything is pushed: every example's own tests, run locally (there is no CI; #36)
-verify = "for d in basic-api basic-orm nested-routes; do (cd $d && bun test) || exit 1; done"
+verify = "for d in */; do [ \"$d\" = node_modules/ ] && continue; [ -f \"$d/package.json\" ] || continue; echo \"== $d\"; (cd \"$d\" && bun test) || exit 1; done"
 
 [merge]
 # No CI and no required status check: bunker opens the PR and the maintainer merges it (#36)
