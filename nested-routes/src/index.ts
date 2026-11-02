@@ -19,8 +19,9 @@ console.log(`
 Try these endpoints:
   GET  ${base}${router.route("health")}
   GET  ${base}${router.route("api.users.index")}
-  GET  ${base}${router.route("api.users.show", { id: 1 })}
-  GET  ${base}${router.route("api.users.posts.index", { userId: 1 })}
+  GET  ${base}${router.route("api.users.show", { user: 1 })}
+  GET  ${base}${router.route("api.users.posts.index", { user: 1 })}
+  GET  ${base}${router.route("api.users.posts.show", { user: 1, post: 2 })}
   GET  ${base}${router.route("api.posts.index")}
   GET  ${base}${router.route("api.posts.index", { authorId: 1 })}
 `);

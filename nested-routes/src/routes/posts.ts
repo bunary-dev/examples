@@ -5,7 +5,7 @@
  * it is given.
  */
 
-import { type GroupRouter, NotFoundError } from "@bunary/http";
+import type { GroupRouter } from "@bunary/http";
 import type { Store } from "../data.js";
 
 export function registerPostRoutes(api: GroupRouter, store: Store): void {
@@ -20,15 +20,11 @@ export function registerPostRoutes(api: GroupRouter, store: Store): void {
 			})
 			.name("index");
 
-		// GET /api/posts/:id - Get single post
+		// GET /api/posts/:post - Get single post
 		posts
-			.get<{ id: string }>("/:id", (ctx) => {
-				const post = store.posts.find((p) => p.id === ctx.params.id);
-				if (!post) {
-					throw new NotFoundError("Post not found");
-				}
-				return ctx.json({ post });
-			})
+			.get("/:post", { bind: { post: (id) => store.posts.find((p) => p.id === id) } }, (ctx) =>
+				ctx.json({ post: ctx.bound.post }),
+			)
 			.name("show");
 
 		// POST /api/posts - Create post

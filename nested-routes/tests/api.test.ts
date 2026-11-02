@@ -39,17 +39,17 @@ describe("users group (/api/users)", () => {
 		expect(data.users[0]).toEqual({ id: "1", name: "Alice", email: "alice@example.com" });
 	});
 
-	it("GET /:id returns one user", async () => {
+	it("GET /:user returns one user", async () => {
 		const response = await call(router, "GET", "/api/users/2");
 
 		expect(response.status).toBe(200);
 		expect((await response.json()).user.name).toBe("Bob");
 	});
 
-	it("GET /:id returns 404 for an unknown user", async () => {
+	it("GET /:user returns 404 for an unknown user", async () => {
 		const response = await call(router, "GET", "/api/users/999");
 
-		await expectNotFoundProblem(response, "User not found");
+		await expectNotFoundProblem(response, "user not found");
 	});
 
 	it("POST / creates a user and lists it afterwards", async () => {
@@ -63,7 +63,7 @@ describe("users group (/api/users)", () => {
 		expect(list.users).toContainEqual(user);
 	});
 
-	it("DELETE /:id removes the user", async () => {
+	it("DELETE /:user removes the user", async () => {
 		const response = await call(router, "DELETE", "/api/users/3");
 
 		expect(response.status).toBe(200);
@@ -71,10 +71,10 @@ describe("users group (/api/users)", () => {
 		expect((await call(router, "GET", "/api/users/3")).status).toBe(404);
 	});
 
-	it("DELETE /:id returns 404 for an unknown user", async () => {
+	it("DELETE /:user returns 404 for an unknown user", async () => {
 		const response = await call(router, "DELETE", "/api/users/999");
 
-		await expectNotFoundProblem(response, "User not found");
+		await expectNotFoundProblem(response, "user not found");
 	});
 
 	it("never reuses an id after a delete", async () => {
@@ -85,7 +85,7 @@ describe("users group (/api/users)", () => {
 	});
 });
 
-describe("nested user posts group (/api/users/:userId/posts)", () => {
+describe("nested user posts group (/api/users/:user/posts)", () => {
 	it("GET / lists the posts of one user", async () => {
 		const response = await call(router, "GET", "/api/users/1/posts");
 		const data = await response.json();
@@ -98,7 +98,7 @@ describe("nested user posts group (/api/users/:userId/posts)", () => {
 	it("GET / returns 404 for an unknown user", async () => {
 		const response = await call(router, "GET", "/api/users/999/posts");
 
-		await expectNotFoundProblem(response, "User not found");
+		await expectNotFoundProblem(response, "user not found");
 	});
 
 	it("includes posts created through the posts group", async () => {
@@ -106,6 +106,35 @@ describe("nested user posts group (/api/users/:userId/posts)", () => {
 		const data = await (await call(router, "GET", "/api/users/2/posts")).json();
 
 		expect(data.posts.map((p: { title: string }) => p.title)).toEqual(["TypeScript Tips", "Bob's second post"]);
+	});
+
+	it("GET /:post returns one of the user's posts", async () => {
+		const response = await call(router, "GET", "/api/users/1/posts/2");
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(data.user.id).toBe("1");
+		expect(data.post).toEqual({ id: "2", title: "Getting Started with Bunary", authorId: "1" });
+	});
+
+	it("GET /:post returns 404 for an unknown user before looking up the post", async () => {
+		const response = await call(router, "GET", "/api/users/999/posts/1");
+
+		await expectNotFoundProblem(response, "user not found");
+	});
+
+	it("GET /:post returns 404 for an unknown post", async () => {
+		const response = await call(router, "GET", "/api/users/1/posts/999");
+
+		await expectNotFoundProblem(response, "post not found");
+	});
+
+	it("GET /:post returns 404 for a post that belongs to another user", async () => {
+		// Post 3 exists (it is Bob's), but the lookup is scoped to Alice.
+		expect((await call(router, "GET", "/api/posts/3")).status).toBe(200);
+		const response = await call(router, "GET", "/api/users/1/posts/3");
+
+		await expectNotFoundProblem(response, "post not found");
 	});
 });
 
@@ -122,17 +151,17 @@ describe("posts group (/api/posts)", () => {
 		expect(data.posts).toEqual([{ id: "3", title: "TypeScript Tips", authorId: "2" }]);
 	});
 
-	it("GET /:id returns one post", async () => {
+	it("GET /:post returns one post", async () => {
 		const response = await call(router, "GET", "/api/posts/1");
 
 		expect(response.status).toBe(200);
 		expect((await response.json()).post.title).toBe("Hello World");
 	});
 
-	it("GET /:id returns 404 for an unknown post", async () => {
+	it("GET /:post returns 404 for an unknown post", async () => {
 		const response = await call(router, "GET", "/api/posts/999");
 
-		await expectNotFoundProblem(response, "Post not found");
+		await expectNotFoundProblem(response, "post not found");
 	});
 
 	it("POST / creates a post and lists it afterwards", async () => {

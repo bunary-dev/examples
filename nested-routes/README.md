@@ -3,7 +3,7 @@
 Organizes an API into **nested route groups** with **named routes**, mounted on a
 `@bunary/core` Application.
 
-Targets `@bunary/core` **^0.4.0** and `@bunary/http` **^0.4.0** (Bun ≥ 1.4.0).
+Targets `@bunary/core` **^0.4.0** and `@bunary/http` **^0.7.1** (Bun ≥ 1.4.0).
 
 ## What it shows
 
@@ -11,7 +11,9 @@ Targets `@bunary/core` **^0.4.0** and `@bunary/http` **^0.4.0** (Bun ≥ 1.4.0).
 - Route groups (`router.group({ prefix, name }, cb)`), nested two levels deep
 - Named routes (`.name()`) whose names stack with each group's name prefix, and URL
   generation with `router.route(name, params)`
-- Thrown `NotFoundError`s, rendered by the router as `application/problem+json`
+- Route model binding: `{ bind: { … } }` resolvers turn `:user` / `:post` into records on
+  `ctx.bound`, including a post lookup scoped to its user
+- Missing records answered as `application/problem+json` 404s
 - `createApp()` from `@bunary/core`, with the router mounted by `httpProvider()` and
   started by `serve()` from `@bunary/http/provider`
 
@@ -37,10 +39,10 @@ Each module registers its own group inside the group it is given:
 export function registerUserRoutes(api: GroupRouter, store: Store): void {
   api.group({ prefix: "/users", name: "users." }, (users) => {
     users.get("/", (ctx) => ctx.json({ users: store.users })).name("index");
-    users.get<{ id: string }>("/:id", (ctx) => { /* ... */ }).name("show");
+    users.get("/:user", { bind: { user: findUser } }, (ctx) => ctx.json({ user: ctx.bound.user })).name("show");
 
-    users.group({ prefix: "/:userId/posts", name: "posts." }, (userPosts) => {
-      userPosts.get<{ userId: string }>("/", (ctx) => { /* ... */ }).name("index");
+    users.group({ prefix: "/:user/posts", name: "posts." }, (userPosts) => {
+      userPosts.get("/", { bind: { user: findUser } }, (ctx) => { /* ... */ }).name("index");
     });
   });
 }
@@ -56,31 +58,57 @@ router.group({ prefix: "/api", name: "api." }, (api) => {
   registerPostRoutes(api, store);
 });
 
-router.route("api.users.posts.index", { userId: 1 }); // "/api/users/1/posts"
+router.route("api.users.posts.index", { user: 1 }); // "/api/users/1/posts"
 router.route("api.posts.index", { authorId: 1 });     // "/api/posts?authorId=1"
 ```
 
 With `basePath: "/v1"` every path and every generated URL gets the `/v1` prefix.
 
-## Errors
+## Route model binding
 
-A handler that cannot find a record throws an `HttpError` subclass from `@bunary/http`
-(`NotFoundError` here; `BadRequestError`, `ConflictError`, … and `abort()` work the same way).
-The router catches it and renders an RFC 9457 `application/problem+json` response:
+Routes that take a record id name the param after the record (`:user`, `:post`) and declare a
+resolver for it in `bind`. The router runs the resolver before the handler and puts the result on
+a typed `ctx.bound`, so the handler never looks anything up itself:
 
 ```typescript
-import { NotFoundError } from "@bunary/http";
+const findUser = (id: string | undefined) => store.users.find((u) => u.id === id);
 
-users.get<{ id: string }>("/:id", (ctx) => {
-  const user = store.users.find((u) => u.id === ctx.params.id);
-  if (!user) throw new NotFoundError("User not found");
-  return ctx.json({ user });
-});
+users.get("/:user", { bind: { user: findUser } }, (ctx) => ctx.json({ user: ctx.bound.user }));
 ```
+
+Bindings resolve one at a time in path order, so a child resolver can scope its lookup to its
+parent through `ctx.bound`. `GET /api/users/:user/posts/:post` only finds posts written by that
+user:
+
+```typescript
+import type { BindingContext } from "@bunary/http";
+
+const findUserPost = (id: string | undefined, ctx: BindingContext) => {
+  const user = ctx.bound.user as User; // untyped inside a resolver; cast it
+  return store.posts.find((p) => p.id === id && p.authorId === user.id);
+};
+
+userPosts.get("/:post", { bind: { user: findUser, post: findUserPost } }, (ctx) =>
+  ctx.json({ user: ctx.bound.user, post: ctx.bound.post }),
+);
+```
+
+## Errors
+
+A resolver that returns `null` or `undefined` stops the request before the handler runs. The
+router answers with an RFC 9457 `application/problem+json` 404 whose detail is
+`"<key> not found"`:
 
 ```json
-{ "type": "about:blank", "title": "Not Found", "status": 404, "detail": "User not found", "instance": "/api/users/999" }
+{ "type": "about:blank", "title": "Not Found", "status": 404, "detail": "user not found", "instance": "/api/users/999" }
 ```
+
+`/api/users/1/posts/3` is a 404 (`"post not found"`) even though post 3 exists, because it
+belongs to user 2. A missing user is reported first (`/api/users/999/posts/1` →
+`"user not found"`), since the post resolver never runs without one.
+
+To answer with something else, throw from the resolver: `abort(410)`, or an `HttpError` subclass
+such as `NotFoundError("…")`, gets the same problem+json rendering. Handlers can throw these too.
 
 An unmatched path gets the same shape from the router itself. When you need to *return* an
 error response instead of throwing (e.g. from a helper), use `problem(status, detail)`; the
@@ -107,12 +135,13 @@ The server listens on port 3000 (`http.port` in `bunary.config.ts`).
 | GET | `/` | `health` | Health check |
 | GET | `/api/users` | `api.users.index` | List all users |
 | POST | `/api/users` | `api.users.store` | Create user |
-| GET | `/api/users/:id` | `api.users.show` | Get user by ID |
-| DELETE | `/api/users/:id` | `api.users.destroy` | Delete user |
-| GET | `/api/users/:userId/posts` | `api.users.posts.index` | List one user's posts |
+| GET | `/api/users/:user` | `api.users.show` | Get user by ID |
+| DELETE | `/api/users/:user` | `api.users.destroy` | Delete user |
+| GET | `/api/users/:user/posts` | `api.users.posts.index` | List one user's posts |
+| GET | `/api/users/:user/posts/:post` | `api.users.posts.show` | Get one of a user's posts (404 if another user wrote it) |
 | GET | `/api/posts` | `api.posts.index` | List all posts (optional `?authorId=`) |
 | POST | `/api/posts` | `api.posts.store` | Create post |
-| GET | `/api/posts/:id` | `api.posts.show` | Get post by ID |
+| GET | `/api/posts/:post` | `api.posts.show` | Get post by ID |
 
 ## Example Requests
 
@@ -125,6 +154,9 @@ curl http://localhost:3000/api/users/1
 
 # A user's posts (nested group)
 curl http://localhost:3000/api/users/1/posts
+
+# One of a user's posts (scoped binding; /api/users/1/posts/3 is a 404)
+curl http://localhost:3000/api/users/1/posts/2
 
 # Create user
 curl -X POST http://localhost:3000/api/users \
