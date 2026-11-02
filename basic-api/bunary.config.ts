@@ -1,4 +1,6 @@
-import { defineConfig } from "@bunary/core";
+import { defineConfig, env } from "@bunary/core";
+// Adds the `http` namespace to BunaryConfig.
+import type {} from "@bunary/http/provider";
 
 /**
  * Bunary application configuration.
@@ -10,9 +12,9 @@ export default defineConfig({
   app: {
     // Application name - used in logs and identification
     name: "basic-api",
-
-    // Environment - controls behavior like logging and error display
-    // Use env("APP_ENV", "development") in production
-    env: "development",
+  },
+  http: {
+    // Port serve() binds to
+    port: env("PORT", 3000),
   },
 });
