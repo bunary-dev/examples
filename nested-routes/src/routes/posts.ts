@@ -1,62 +1,44 @@
 /**
  * Posts Routes Module
  *
- * Demonstrates organizing routes by resource.
- * All routes in this module are prefixed with /api/posts
+ * Registers the `/posts` group (route names `posts.*`) inside whatever group
+ * it is given.
  */
 
-import type { BunaryApp } from "@bunary/http";
+import type { GroupRouter } from "@bunary/http";
+import type { Store } from "../data.js";
 
-// Mock post data
-const posts = [
-	{ id: "1", title: "Hello World", authorId: "1" },
-	{ id: "2", title: "Getting Started with Bunary", authorId: "1" },
-	{ id: "3", title: "TypeScript Tips", authorId: "2" },
-];
+export function registerPostRoutes(api: GroupRouter, store: Store): void {
+	api.group({ prefix: "/posts", name: "posts." }, (posts) => {
+		// GET /api/posts - List all posts (optional ?authorId filter)
+		posts
+			.get("/", (ctx) => {
+				const authorId = ctx.query.get("authorId");
+				return ctx.json({
+					posts: authorId ? store.posts.filter((p) => p.authorId === authorId) : store.posts,
+				});
+			})
+			.name("index");
 
-/**
- * Register post routes on the app with the given prefix.
- */
-export function registerPostRoutes(app: BunaryApp, prefix: string): void {
-	// GET /api/posts - List all posts
-	app.get(`${prefix}`, (ctx) => {
-		// Optional filter by author
-		const authorId = ctx.query.get("authorId");
+		// GET /api/posts/:id - Get single post
+		posts
+			.get<{ id: string }>("/:id", (ctx) => {
+				const post = store.posts.find((p) => p.id === ctx.params.id);
+				if (!post) {
+					return ctx.json({ error: "Post not found" }, { status: 404 });
+				}
+				return ctx.json({ post });
+			})
+			.name("show");
 
-		if (authorId) {
-			return { posts: posts.filter((p) => p.authorId === authorId) };
-		}
-
-		return { posts };
-	});
-
-	// GET /api/posts/:id - Get single post
-	app.get(`${prefix}/:id`, (ctx) => {
-		const post = posts.find((p) => p.id === ctx.params.id);
-
-		if (!post) {
-			return new Response(JSON.stringify({ error: "Post not found" }), {
-				status: 404,
-				headers: { "Content-Type": "application/json" },
-			});
-		}
-
-		return { post };
-	});
-
-	// POST /api/posts - Create post
-	app.post(`${prefix}`, async (ctx) => {
-		const body = (await ctx.request.json()) as { title: string; authorId: string };
-		const newPost = {
-			id: String(posts.length + 1),
-			title: body.title,
-			authorId: body.authorId,
-		};
-		posts.push(newPost);
-
-		return new Response(JSON.stringify({ post: newPost }), {
-			status: 201,
-			headers: { "Content-Type": "application/json" },
-		});
+		// POST /api/posts - Create post
+		posts
+			.post("/", async (ctx) => {
+				const body = await ctx.body.json<{ title: string; authorId: string }>();
+				const post = { id: String(store.nextId.posts++), title: body.title, authorId: body.authorId };
+				store.posts.push(post);
+				return ctx.json({ post }, { status: 201 });
+			})
+			.name("store");
 	});
 }

@@ -1,375 +1,162 @@
 /**
- * Nested Routes Example Tests
- * 
- * Comprehensive tests for all endpoints in the nested-routes example.
- * Tests route organization, path parameters, query parameters, and error handling.
+ * Endpoint behaviour of the nested-routes example.
+ *
+ * Each test builds a fresh router (and so a fresh in-memory store), and calls
+ * it through `router.fetch` without starting a server.
  */
 
-import { describe, expect, it, beforeAll, afterAll } from "bun:test";
-import { createApp } from "@bunary/http";
-import { registerRoutes } from "../src/routes/index.js";
+import { beforeEach, describe, expect, it } from "bun:test";
+import type { Router } from "@bunary/http";
+import { buildRouter } from "../src/router.js";
+import { call } from "./helpers.js";
 
-describe("Nested Routes Example", () => {
-	let app: ReturnType<typeof createApp>;
-	let server: ReturnType<ReturnType<typeof createApp>["listen"]>;
-	let baseUrl: string;
+let router: Router;
 
-	beforeAll(() => {
-		// Create app instance (same as example)
-		app = createApp();
+beforeEach(() => {
+	router = buildRouter();
+});
 
-		// Health check at root (same as example)
-		app.get("/", () => ({
+describe("GET /", () => {
+	it("returns the health check with the generated endpoint URLs", async () => {
+		const response = await call(router, "GET", "/");
+
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({
 			status: "ok",
 			message: "Nested Routes Example",
 			endpoints: ["/api/users", "/api/posts"],
-		}));
-
-		// Register all API routes from modules (same as example)
-		registerRoutes(app);
-
-		// Start server on a random port for testing
-		const port = 0; // 0 = random available port
-		server = app.listen({ port });
-		baseUrl = `http://localhost:${server.port}`;
-	});
-
-	afterAll(() => {
-		// Clean up server
-		if (server) {
-			server.stop();
-		}
-	});
-
-	describe("GET /", () => {
-		it("should return health check with status and endpoints", async () => {
-			const response = await fetch(`${baseUrl}/`);
-			const data = await response.json();
-
-			expect(response.status).toBe(200);
-			expect(data.status).toBe("ok");
-			expect(data.message).toBe("Nested Routes Example");
-			expect(data.endpoints).toEqual(["/api/users", "/api/posts"]);
 		});
 	});
+});
 
-	describe("GET /api/users", () => {
-		it("should return list of all users", async () => {
-			const response = await fetch(`${baseUrl}/api/users`);
-			const data = await response.json();
+describe("users group (/api/users)", () => {
+	it("GET / lists all users", async () => {
+		const response = await call(router, "GET", "/api/users");
+		const data = await response.json();
 
-			expect(response.status).toBe(200);
-			expect(data.users).toBeDefined();
-			expect(Array.isArray(data.users)).toBe(true);
-			expect(data.users.length).toBeGreaterThan(0);
-			expect(data.users[0]).toHaveProperty("id");
-			expect(data.users[0]).toHaveProperty("name");
-			expect(data.users[0]).toHaveProperty("email");
-		});
-
-		it("should return initial users from mock data", async () => {
-			const response = await fetch(`${baseUrl}/api/users`);
-			const data = await response.json();
-
-			expect(response.status).toBe(200);
-			// Should have at least the initial 3 users
-			expect(data.users.length).toBeGreaterThanOrEqual(3);
-		});
+		expect(response.status).toBe(200);
+		expect(data.users).toHaveLength(3);
+		expect(data.users[0]).toEqual({ id: "1", name: "Alice", email: "alice@example.com" });
 	});
 
-	describe("GET /api/users/:id", () => {
-		it("should return user by ID", async () => {
-			const userId = "1";
-			const response = await fetch(`${baseUrl}/api/users/${userId}`);
-			const data = await response.json();
+	it("GET /:id returns one user", async () => {
+		const response = await call(router, "GET", "/api/users/2");
 
-			expect(response.status).toBe(200);
-			expect(data.user).toBeDefined();
-			expect(data.user.id).toBe(userId);
-			expect(data.user.name).toBeDefined();
-			expect(data.user.email).toBeDefined();
-		});
-
-		it("should return 404 for non-existent user", async () => {
-			const response = await fetch(`${baseUrl}/api/users/999`);
-			const data = await response.json();
-
-			expect(response.status).toBe(404);
-			expect(data.error).toBe("User not found");
-		});
+		expect(response.status).toBe(200);
+		expect((await response.json()).user.name).toBe("Bob");
 	});
 
-	describe("POST /api/users", () => {
-		it("should create a new user", async () => {
-			const newUser = {
-				name: "Dave",
-				email: "dave@example.com",
-			};
+	it("GET /:id returns 404 for an unknown user", async () => {
+		const response = await call(router, "GET", "/api/users/999");
 
-			const response = await fetch(`${baseUrl}/api/users`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(newUser),
-			});
-
-			expect(response.status).toBe(201);
-			const data = await response.json();
-			expect(data.user).toBeDefined();
-			expect(data.user.id).toBeDefined();
-			expect(data.user.name).toBe(newUser.name);
-			expect(data.user.email).toBe(newUser.email);
-		});
-
-		it("should assign sequential IDs to new users", async () => {
-			const user1 = { name: "User 1", email: "user1@example.com" };
-			const user2 = { name: "User 2", email: "user2@example.com" };
-
-			const response1 = await fetch(`${baseUrl}/api/users`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(user1),
-			});
-
-			const response2 = await fetch(`${baseUrl}/api/users`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(user2),
-			});
-
-			const data1 = await response1.json();
-			const data2 = await response2.json();
-
-			expect(data1.user.id).not.toBe(data2.user.id);
-		});
-
-		it("should include new user in list after creation", async () => {
-			const newUser = { name: "Test User", email: "test@example.com" };
-
-			// Create user
-			const createResponse = await fetch(`${baseUrl}/api/users`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(newUser),
-			});
-			const created = await createResponse.json();
-
-			// Verify user appears in list
-			const listResponse = await fetch(`${baseUrl}/api/users`);
-			const listData = await listResponse.json();
-
-			const found = listData.users.find((u: { id: string }) => u.id === created.user.id);
-			expect(found).toBeDefined();
-			expect(found.name).toBe(newUser.name);
-		});
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ error: "User not found" });
 	});
 
-	describe("DELETE /api/users/:id", () => {
-		it("should delete user by ID", async () => {
-			// First create a user to delete
-			const newUser = { name: "To Delete", email: "delete@example.com" };
-			const createResponse = await fetch(`${baseUrl}/api/users`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(newUser),
-			});
-			const created = await createResponse.json();
-			const userId = created.user.id;
+	it("POST / creates a user and lists it afterwards", async () => {
+		const response = await call(router, "POST", "/api/users", { name: "Dave", email: "dave@example.com" });
+		const { user } = await response.json();
 
-			// Delete the user
-			const deleteResponse = await fetch(`${baseUrl}/api/users/${userId}`, {
-				method: "DELETE",
-			});
+		expect(response.status).toBe(201);
+		expect(user).toEqual({ id: "4", name: "Dave", email: "dave@example.com" });
 
-			expect(deleteResponse.status).toBe(200);
-			const data = await deleteResponse.json();
-			expect(data.deleted).toBeDefined();
-			expect(data.deleted.id).toBe(userId);
-		});
-
-		it("should return 404 when deleting non-existent user", async () => {
-			const response = await fetch(`${baseUrl}/api/users/999`, {
-				method: "DELETE",
-			});
-
-			expect(response.status).toBe(404);
-			const data = await response.json();
-			expect(data.error).toBe("User not found");
-		});
-
-		it("should remove user from list after deletion", async () => {
-			// Create a user
-			const newUser = { name: "Temp User", email: "temp@example.com" };
-			const createResponse = await fetch(`${baseUrl}/api/users`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(newUser),
-			});
-			const created = await createResponse.json();
-			const userId = created.user.id;
-
-			// Delete the user
-			await fetch(`${baseUrl}/api/users/${userId}`, {
-				method: "DELETE",
-			});
-
-			// Verify user is no longer in list
-			const listResponse = await fetch(`${baseUrl}/api/users`);
-			const listData = await listResponse.json();
-
-			const found = listData.users.find((u: { id: string }) => u.id === userId);
-			expect(found).toBeUndefined();
-		});
+		const list = await (await call(router, "GET", "/api/users")).json();
+		expect(list.users).toContainEqual(user);
 	});
 
-	describe("GET /api/posts", () => {
-		it("should return list of all posts", async () => {
-			const response = await fetch(`${baseUrl}/api/posts`);
-			const data = await response.json();
+	it("DELETE /:id removes the user", async () => {
+		const response = await call(router, "DELETE", "/api/users/3");
 
-			expect(response.status).toBe(200);
-			expect(data.posts).toBeDefined();
-			expect(Array.isArray(data.posts)).toBe(true);
-			expect(data.posts.length).toBeGreaterThan(0);
-			expect(data.posts[0]).toHaveProperty("id");
-			expect(data.posts[0]).toHaveProperty("title");
-			expect(data.posts[0]).toHaveProperty("authorId");
-		});
-
-		it("should filter posts by authorId query parameter", async () => {
-			const authorId = "1";
-			const response = await fetch(`${baseUrl}/api/posts?authorId=${authorId}`);
-			const data = await response.json();
-
-			expect(response.status).toBe(200);
-			expect(data.posts).toBeDefined();
-			expect(Array.isArray(data.posts)).toBe(true);
-			// All returned posts should have the matching authorId
-			data.posts.forEach((post: { authorId: string }) => {
-				expect(post.authorId).toBe(authorId);
-			});
-		});
-
-		it("should return empty array when filtering by non-existent authorId", async () => {
-			const response = await fetch(`${baseUrl}/api/posts?authorId=999`);
-			const data = await response.json();
-
-			expect(response.status).toBe(200);
-			expect(data.posts).toBeDefined();
-			expect(Array.isArray(data.posts)).toBe(true);
-			expect(data.posts.length).toBe(0);
-		});
-
-		it("should return all posts when authorId is not provided", async () => {
-			const allResponse = await fetch(`${baseUrl}/api/posts`);
-			const filteredResponse = await fetch(`${baseUrl}/api/posts?authorId=1`);
-
-			const allData = await allResponse.json();
-			const filteredData = await filteredResponse.json();
-
-			expect(allData.posts.length).toBeGreaterThanOrEqual(filteredData.posts.length);
-		});
+		expect(response.status).toBe(200);
+		expect((await response.json()).deleted.id).toBe("3");
+		expect((await call(router, "GET", "/api/users/3")).status).toBe(404);
 	});
 
-	describe("GET /api/posts/:id", () => {
-		it("should return post by ID", async () => {
-			const postId = "1";
-			const response = await fetch(`${baseUrl}/api/posts/${postId}`);
-			const data = await response.json();
+	it("DELETE /:id returns 404 for an unknown user", async () => {
+		const response = await call(router, "DELETE", "/api/users/999");
 
-			expect(response.status).toBe(200);
-			expect(data.post).toBeDefined();
-			expect(data.post.id).toBe(postId);
-			expect(data.post.title).toBeDefined();
-			expect(data.post.authorId).toBeDefined();
-		});
-
-		it("should return 404 for non-existent post", async () => {
-			const response = await fetch(`${baseUrl}/api/posts/999`);
-			const data = await response.json();
-
-			expect(response.status).toBe(404);
-			expect(data.error).toBe("Post not found");
-		});
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ error: "User not found" });
 	});
 
-	describe("POST /api/posts", () => {
-		it("should create a new post", async () => {
-			const newPost = {
-				title: "New Post",
-				authorId: "1",
-			};
+	it("never reuses an id after a delete", async () => {
+		await call(router, "DELETE", "/api/users/3");
+		const response = await call(router, "POST", "/api/users", { name: "Eve", email: "eve@example.com" });
 
-			const response = await fetch(`${baseUrl}/api/posts`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(newPost),
-			});
+		expect((await response.json()).user.id).toBe("4");
+	});
+});
 
-			expect(response.status).toBe(201);
-			const data = await response.json();
-			expect(data.post).toBeDefined();
-			expect(data.post.id).toBeDefined();
-			expect(data.post.title).toBe(newPost.title);
-			expect(data.post.authorId).toBe(newPost.authorId);
-		});
+describe("nested user posts group (/api/users/:userId/posts)", () => {
+	it("GET / lists the posts of one user", async () => {
+		const response = await call(router, "GET", "/api/users/1/posts");
+		const data = await response.json();
 
-		it("should assign sequential IDs to new posts", async () => {
-			const post1 = { title: "Post 1", authorId: "1" };
-			const post2 = { title: "Post 2", authorId: "1" };
-
-			const response1 = await fetch(`${baseUrl}/api/posts`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(post1),
-			});
-
-			const response2 = await fetch(`${baseUrl}/api/posts`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(post2),
-			});
-
-			const data1 = await response1.json();
-			const data2 = await response2.json();
-
-			expect(data1.post.id).not.toBe(data2.post.id);
-		});
-
-		it("should include new post in list after creation", async () => {
-			const newPost = { title: "Test Post", authorId: "2" };
-
-			// Create post
-			const createResponse = await fetch(`${baseUrl}/api/posts`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(newPost),
-			});
-			const created = await createResponse.json();
-
-			// Verify post appears in list
-			const listResponse = await fetch(`${baseUrl}/api/posts`);
-			const listData = await listResponse.json();
-
-			const found = listData.posts.find((p: { id: string }) => p.id === created.post.id);
-			expect(found).toBeDefined();
-			expect(found.title).toBe(newPost.title);
-		});
+		expect(response.status).toBe(200);
+		expect(data.user.id).toBe("1");
+		expect(data.posts.map((p: { id: string }) => p.id)).toEqual(["1", "2"]);
 	});
 
-	describe("Route Organization", () => {
-		it("should have routes organized by prefix", async () => {
-			// Users routes should be under /api/users
-			const usersResponse = await fetch(`${baseUrl}/api/users`);
-			expect(usersResponse.status).toBe(200);
+	it("GET / returns 404 for an unknown user", async () => {
+		const response = await call(router, "GET", "/api/users/999/posts");
 
-			// Posts routes should be under /api/posts
-			const postsResponse = await fetch(`${baseUrl}/api/posts`);
-			expect(postsResponse.status).toBe(200);
-		});
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ error: "User not found" });
+	});
 
-		it("should return 404 for non-existent routes", async () => {
-			const response = await fetch(`${baseUrl}/api/nonexistent`);
-			expect(response.status).toBe(404);
-		});
+	it("includes posts created through the posts group", async () => {
+		await call(router, "POST", "/api/posts", { title: "Bob's second post", authorId: "2" });
+		const data = await (await call(router, "GET", "/api/users/2/posts")).json();
+
+		expect(data.posts.map((p: { title: string }) => p.title)).toEqual(["TypeScript Tips", "Bob's second post"]);
+	});
+});
+
+describe("posts group (/api/posts)", () => {
+	it("GET / lists all posts", async () => {
+		const data = await (await call(router, "GET", "/api/posts")).json();
+
+		expect(data.posts).toHaveLength(3);
+	});
+
+	it("GET /?authorId= filters posts by author", async () => {
+		const data = await (await call(router, "GET", "/api/posts?authorId=2")).json();
+
+		expect(data.posts).toEqual([{ id: "3", title: "TypeScript Tips", authorId: "2" }]);
+	});
+
+	it("GET /:id returns one post", async () => {
+		const response = await call(router, "GET", "/api/posts/1");
+
+		expect(response.status).toBe(200);
+		expect((await response.json()).post.title).toBe("Hello World");
+	});
+
+	it("GET /:id returns 404 for an unknown post", async () => {
+		const response = await call(router, "GET", "/api/posts/999");
+
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ error: "Post not found" });
+	});
+
+	it("POST / creates a post and lists it afterwards", async () => {
+		const response = await call(router, "POST", "/api/posts", { title: "New Post", authorId: "1" });
+		const { post } = await response.json();
+
+		expect(response.status).toBe(201);
+		expect(post).toEqual({ id: "4", title: "New Post", authorId: "1" });
+
+		const list = await (await call(router, "GET", "/api/posts")).json();
+		expect(list.posts).toContainEqual(post);
+	});
+});
+
+describe("unknown routes", () => {
+	it("returns 404 outside the defined groups", async () => {
+		expect((await call(router, "GET", "/api/nonexistent")).status).toBe(404);
+	});
+
+	it("returns 405 for a known path with the wrong method", async () => {
+		expect((await call(router, "PATCH", "/api/users")).status).toBe(405);
 	});
 });
