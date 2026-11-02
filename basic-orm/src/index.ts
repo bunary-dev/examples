@@ -1,263 +1,146 @@
 /**
  * Basic ORM Example
  *
- * This example demonstrates how to use @bunary/orm in a Bunary application:
- * - Setting up ORM configuration
- * - Creating database tables
- * - Using Model classes (Eloquent-like pattern)
- * - Basic query operations (find, all, select, exclude)
- * - Advanced query operations (where, limit, offset, orderBy, first, count)
- * - Method chaining
+ * Demonstrates @bunary/orm 0.4 on Drizzle:
+ * - Drizzle SQLite tables (src/db/schema.ts) and drizzle-kit migrations
+ * - Booting the database through @bunary/core with `ormProvider`
+ * - `defineModel(db, table)` models (src/models.ts)
+ * - Reading: find, findOrFail, where().get()/first(), query()
+ * - CRUD with dirty tracking: create, save, refresh, delete
+ * - Hidden columns and model events
+ * - Named scopes, soft deletes and eager-loaded relations with `with()`
  */
 
-import { defineConfig } from "@bunary/core";
-import { Database } from "bun:sqlite";
-import { Users, Posts } from "./models/index.js";
+import { ModelNotFoundError } from "@bunary/orm";
+import { desc, eq, gt } from "drizzle-orm";
+import { users } from "./db/schema.js";
+import { databasePath, setupDatabase } from "./db/setup.js";
+import type { Models } from "./models.js";
 
-// ============================================================================
-// Configuration (using @bunary/core)
-// ============================================================================
-
-const dbPath = "./example.sqlite";
-
-// Configure Bunary with app and ORM settings
-// The ORM will automatically read from core config if no explicit config is set
-defineConfig({
-	app: {
-		name: "Basic ORM Example",
-		env: "development",
-		debug: true,
-	},
-	orm: {
-		database: {
-			type: "sqlite",
-			sqlite: {
-				path: dbPath,
-			},
-		},
-	},
-});
-
-// ============================================================================
-// Database Setup
-// ============================================================================
-
-/**
- * Initialize the database with sample tables and data
- */
-function initializeDatabase() {
-	const db = new Database(dbPath);
-
-	// Drop existing tables to recreate with updated schema
-	db.exec("DROP TABLE IF EXISTS posts");
-	db.exec("DROP TABLE IF EXISTS users");
-
-	// Create users table
-	// Schema must match Users model configuration:
-	// - secret_key column (for protected fields exclusion)
-	// - createdAt, updatedAt columns in camelCase (for timestamps exclusion)
-	db.exec(`
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL,
-			email TEXT NOT NULL UNIQUE,
-			password TEXT NOT NULL,
-			secret_key TEXT,
-			age INTEGER,
-			active INTEGER DEFAULT 1,
-			createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-			updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
-		);
-	`);
-
-	// Create posts table
-	// Schema includes createdAt, updatedAt but Posts model has timestamps=false
-	// so these columns will be included in query results (not excluded)
-	db.exec(`
-		CREATE TABLE posts (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			user_id INTEGER NOT NULL,
-			title TEXT NOT NULL,
-			content TEXT,
-			published INTEGER DEFAULT 0,
-			createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-			updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (user_id) REFERENCES users(id)
-		);
-	`);
-
-	// Insert sample users
-	db.exec(`
-		INSERT INTO users (name, email, password, secret_key, age, active) VALUES
-			('John Doe', 'john@example.com', 'secret123', 'key123', 25, 1),
-			('Jane Smith', 'jane@example.com', 'secret456', 'key456', 30, 1),
-			('Bob Wilson', 'bob@example.com', 'secret789', 'key789', 28, 0),
-			('Alice Brown', 'alice@example.com', 'secret012', 'key012', 35, 1),
-			('Charlie Davis', 'charlie@example.com', 'secret345', 'key345', 22, 1);
-	`);
-
-	// Insert sample posts
-	db.exec(`
-		INSERT INTO posts (user_id, title, content, published) VALUES
-			(1, 'First Post', 'This is my first post!', 1),
-			(1, 'Second Post', 'Another post by John', 1),
-			(2, 'Hello World', 'Jane says hello', 1),
-			(2, 'Draft Post', 'This is a draft', 0),
-			(4, 'Alice Post', 'Content from Alice', 1);
-	`);
-
-	db.close();
-	console.log("✅ Database initialized with sample data");
-}
-
-// ============================================================================
-// Example Queries
-// ============================================================================
-
-async function demonstrateQueries() {
-	console.log("\n📊 Demonstrating ORM Queries\n");
+async function demonstrate({ User, Post }: Models) {
+	console.log("\n📊 Demonstrating ORM operations\n");
 
 	// ------------------------------------------------------------------------
-	// Basic Queries
+	// Reading
 	// ------------------------------------------------------------------------
 
-	console.log("1️⃣  Find a user by ID");
-	const user = await Users.find(1);
-	console.log("   Result:", user);
+	console.log("1️⃣  find() a user by primary key");
+	const john = await User.find(1);
+	console.log("   Result (toJSON, password hidden):", john?.toJSON());
 	console.log();
 
-	console.log("2️⃣  Get all users");
-	const allUsers = await Users.all();
-	console.log(`   Found ${allUsers.length} users`);
+	console.log("2️⃣  findOrFail() throws ModelNotFoundError");
+	try {
+		await User.findOrFail(999);
+	} catch (error) {
+		if (!(error instanceof ModelNotFoundError)) throw error;
+		console.log(`   ${error.table} #${String(error.id)} not found`);
+	}
 	console.log();
 
-	console.log("3️⃣  Select specific columns");
-	const userNames = await Users.select("id", "name", "email").all();
-	console.log("   Users (id, name, email only):", userNames);
-	console.log("   Note: password, secret_key, createdAt, updatedAt are automatically excluded");
+	console.log("3️⃣  where() with Drizzle conditions");
+	const over25 = await User.where(gt(users.age, 25)).get();
+	console.log("   Users over 25:", over25.map((u) => u.name));
+	const jane = await User.where(eq(users.email, "jane@example.com")).first();
+	console.log("   First match by email:", jane?.name);
 	console.log();
 
-	console.log("4️⃣  Protected fields and timestamps are automatically excluded");
-	const publicUsers = await Users.all();
-	console.log("   First user (password, secret_key, timestamps excluded):", publicUsers[0]);
-	console.log("   Notice: password, secret_key, createdAt, updatedAt are not in the result");
+	console.log("4️⃣  query() for ordering and limits (plain Drizzle rows)");
+	const oldest = await User.query().orderBy(desc(users.age)).limit(2);
+	console.log("   Two oldest:", oldest.map((u) => u.name));
 	console.log();
 
 	// ------------------------------------------------------------------------
-	// Advanced Queries
+	// CRUD with dirty tracking
 	// ------------------------------------------------------------------------
 
-	console.log("5️⃣  Where clause - find active users");
-	const activeUsers = await Users.where("active", 1).all();
-	console.log(`   Found ${activeUsers.length} active users`);
+	console.log("5️⃣  create() (the creating event hashes the password)");
+	const dana = await User.create({ name: "Dana Lee", email: "dana@example.com", password: "pw", age: 41 });
+	if (!dana) throw new Error("create was cancelled by a listener");
+	console.log("   Created:", dana.toJSON());
+	console.log("   Password is hashed:", dana.password.startsWith("$argon2"));
 	console.log();
 
-	console.log("6️⃣  Where with operators");
-	const youngUsers = await Users.where("age", "<", 30).all();
-	console.log(`   Found ${youngUsers.length} users under 30`);
+	console.log("6️⃣  Dirty tracking and save()");
+	dana.age = 42;
+	console.log("   isDirty('age'):", dana.isDirty("age"), "getDirty():", dana.getDirty());
+	await dana.save(); // UPDATE users SET age = ? WHERE id = ?
+	console.log("   After save, isDirty():", dana.isDirty());
 	console.log();
 
-	console.log("7️⃣  Limit results");
-	const limitedUsers = await Users.limit(2).all();
-	console.log(`   Limited to 2 users:`, limitedUsers.map((u) => u.name));
+	console.log("7️⃣  refresh() discards unsaved changes");
+	dana.name = "Not saved";
+	await dana.refresh();
+	console.log("   Name after refresh:", dana.name);
 	console.log();
 
-	console.log("8️⃣  Order by column");
-	const orderedUsers = await Users.orderBy("name", "asc").all();
-	console.log(
-		"   Users ordered by name:",
-		orderedUsers.map((u) => u.name),
-	);
-	console.log();
-
-	console.log("9️⃣  Offset and limit (pagination)");
-	const page2 = await Users.orderBy("id", "asc").offset(2).limit(2).all();
-	console.log("   Page 2 (offset 2, limit 2):", page2.map((u) => u.name));
-	console.log();
-
-	console.log("🔟 First record");
-	const firstUser = await Users.orderBy("id", "asc").first();
-	console.log("   First user:", firstUser?.name);
-	console.log();
-
-	console.log("1️⃣1️⃣  Count records");
-	const totalUsers = await Users.count();
-	console.log(`   Total users: ${totalUsers}`);
-	console.log();
-
-	const activeCount = await Users.where("active", 1).count();
-	console.log(`   Active users: ${activeCount}`);
+	console.log("8️⃣  delete()");
+	await dana.delete();
+	console.log("   Found after delete:", await User.find(dana.id));
 	console.log();
 
 	// ------------------------------------------------------------------------
-	// Method Chaining
+	// Scopes
 	// ------------------------------------------------------------------------
 
-	console.log("1️⃣2️⃣  Complex chained query");
-	const complexQuery = await Users.select("id", "name", "email", "age")
-		.where("active", 1)
-		.where("age", ">", 25)
-		.orderBy("age", "desc")
-		.limit(3)
-		.all();
-	console.log("   Active users over 25, ordered by age (desc), limit 3:");
-	console.log(complexQuery);
+	console.log("9️⃣  Named scopes");
+	const active = await User.active().get();
+	console.log(`   Active users: ${active.length}`);
+	const activeOver25 = await User.active().olderThan(25).get();
+	console.log("   Active users over 25:", activeOver25.map((u) => u.name));
+	const published = await Post.published().get();
+	console.log(`   Published posts: ${published.length}`);
 	console.log();
 
 	// ------------------------------------------------------------------------
-	// Working with Related Data
+	// Soft deletes
 	// ------------------------------------------------------------------------
 
-	console.log("1️⃣3️⃣  Query related posts");
-	const posts = await Posts.where("published", 1)
-		.orderBy("createdAt", "desc")
-		.all();
-	console.log(`   Found ${posts.length} published posts`);
-	console.log("   Note: Posts model has timestamps=false, so createdAt/updatedAt are included");
+	console.log("🔟 Soft deletes");
+	const draft = await Post.findOrFail(4);
+	await draft.delete(); // sets deleted_at
+	console.log("   trashed():", draft.trashed(), "find() after delete:", await Post.find(4));
+	console.log("   withTrashed():", (await Post.withTrashed().get()).length, "posts");
+	console.log("   onlyTrashed():", (await Post.onlyTrashed().get()).map((p) => p.title));
+	await draft.restore();
+	console.log("   Restored, trashed():", draft.trashed());
 	console.log();
 
-	// Get posts for a specific user
-	const userPosts = await Posts.where("user_id", 1).all();
-	console.log(`   User 1 has ${userPosts.length} posts`);
+	// ------------------------------------------------------------------------
+	// Relations
+	// ------------------------------------------------------------------------
+
+	console.log("1️⃣1️⃣  Eager-loading relations with with()");
+	const author = await User.with({ posts: Post }).findOrFail(1);
+	console.log(`   ${author.name} wrote:`, author.posts.map((p) => p.title));
+	const post = await Post.with({ author: User }).findOrFail(3);
+	console.log(`   "${post.title}" was written by ${post.author.name}`);
 	console.log();
 }
 
-// ============================================================================
-// Main Execution
-// ============================================================================
-
-async function main() {
+/** Set up the database at `path`, seed it and run every demo step. */
+export async function runExample(path: string = databasePath) {
 	console.log(`
 🚀 Bunary Basic ORM Example
 
-This example demonstrates the @bunary/orm package usage with Model classes.
-Using Eloquent-like pattern: Users.select() instead of Model.table("users").select()
+@bunary/orm models on Drizzle: defineModel(db, table)
 `);
 
+	const { db, models } = await setupDatabase(path);
+	console.log(`✅ Database ${path} migrated and seeded`);
 	try {
-		// Initialize database
-		initializeDatabase();
+		await demonstrate(models);
+	} finally {
+		db.$client.close();
+	}
+	console.log("✅ All examples completed successfully!");
+}
 
-		// Demonstrate queries
-		await demonstrateQueries();
-
-		console.log("✅ All examples completed successfully!");
-		console.log(`
-📝 Next Steps:
-- Modify the queries to experiment with different patterns
-- Add your own tables and data
-- Explore the query builder API
-- Check the documentation: https://github.com/bunary-dev/orm
-		`);
+if (import.meta.main) {
+	try {
+		await runExample();
 	} catch (error) {
 		console.error("❌ Error:", error);
-		if (error instanceof Error) {
-			console.error("   Message:", error.message);
-			console.error("   Stack:", error.stack);
-		}
 		process.exit(1);
 	}
 }
-
-// Run the example
-main();

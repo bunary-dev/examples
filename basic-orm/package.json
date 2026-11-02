@@ -3,18 +3,23 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Basic ORM example demonstrating @bunary/orm usage",
+  "description": "Basic ORM example demonstrating @bunary/orm models on Drizzle",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --target=bun --outdir=dist",
-    "start": "bun run dist/index.js",
-    "test": "bun test"
+    "start": "bun run src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:setup": "bun run src/db/setup.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bunary/core": "^0.0.7",
-    "@bunary/orm": "^0.0.14"
+    "@bunary/core": "^0.4.0",
+    "@bunary/orm": "^0.4.0",
+    "drizzle-orm": "^0.45.0"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.6"
+    "@types/bun": "^1.3.6",
+    "drizzle-kit": "^0.31.0",
+    "typescript": "^7.0.2"
   }
 }
