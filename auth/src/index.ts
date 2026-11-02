@@ -17,10 +17,11 @@ const server = serve(app);
 const base = `http://localhost:${server.port}`;
 const [ada] = demoUsers;
 console.log(`🚀 Server running on ${base}`);
+// Never log passwords, even demo ones: the demo credentials are in README.md ("Demo users").
 console.log(`
-Demo user: ${ada?.email} / ${ada?.password}
+Demo user: ${ada?.email} (password: see README.md, "Demo users")
 
   curl -X POST ${base}/login -H "Content-Type: application/json" \\
-    -d '{"email": "${ada?.email}", "password": "${ada?.password}"}'
+    -d '{"email": "${ada?.email}", "password": "<password>"}'
   curl ${base}/me -H "Authorization: Bearer <token>"
 `);
