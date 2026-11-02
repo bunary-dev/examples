@@ -11,6 +11,7 @@ Targets `@bunary/core` **^0.4.0** and `@bunary/http` **^0.4.0** (Bun ≥ 1.4.0).
 - Route groups (`router.group({ prefix, name }, cb)`), nested two levels deep
 - Named routes (`.name()`) whose names stack with each group's name prefix, and URL
   generation with `router.route(name, params)`
+- Thrown `NotFoundError`s, rendered by the router as `application/problem+json`
 - `createApp()` from `@bunary/core`, with the router mounted by `httpProvider()` and
   started by `serve()` from `@bunary/http/provider`
 
@@ -60,6 +61,30 @@ router.route("api.posts.index", { authorId: 1 });     // "/api/posts?authorId=1"
 ```
 
 With `basePath: "/v1"` every path and every generated URL gets the `/v1` prefix.
+
+## Errors
+
+A handler that cannot find a record throws an `HttpError` subclass from `@bunary/http`
+(`NotFoundError` here; `BadRequestError`, `ConflictError`, … and `abort()` work the same way).
+The router catches it and renders an RFC 9457 `application/problem+json` response:
+
+```typescript
+import { NotFoundError } from "@bunary/http";
+
+users.get<{ id: string }>("/:id", (ctx) => {
+  const user = store.users.find((u) => u.id === ctx.params.id);
+  if (!user) throw new NotFoundError("User not found");
+  return ctx.json({ user });
+});
+```
+
+```json
+{ "type": "about:blank", "title": "Not Found", "status": 404, "detail": "User not found", "instance": "/api/users/999" }
+```
+
+An unmatched path gets the same shape from the router itself. When you need to *return* an
+error response instead of throwing (e.g. from a helper), use `problem(status, detail)`; the
+[auth example](../auth) does that for its 401s.
 
 ## Running
 

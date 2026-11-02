@@ -5,7 +5,7 @@
  * it is given.
  */
 
-import type { GroupRouter } from "@bunary/http";
+import { type GroupRouter, NotFoundError } from "@bunary/http";
 import type { Store } from "../data.js";
 
 export function registerPostRoutes(api: GroupRouter, store: Store): void {
@@ -25,7 +25,7 @@ export function registerPostRoutes(api: GroupRouter, store: Store): void {
 			.get<{ id: string }>("/:id", (ctx) => {
 				const post = store.posts.find((p) => p.id === ctx.params.id);
 				if (!post) {
-					return ctx.json({ error: "Post not found" }, { status: 404 });
+					throw new NotFoundError("Post not found");
 				}
 				return ctx.json({ post });
 			})
