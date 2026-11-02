@@ -5,7 +5,7 @@
  * it is given, plus a nested `/:userId/posts` group (`users.posts.*`).
  */
 
-import type { GroupRouter } from "@bunary/http";
+import { type GroupRouter, NotFoundError } from "@bunary/http";
 import type { Store } from "../data.js";
 
 export function registerUserRoutes(api: GroupRouter, store: Store): void {
@@ -18,7 +18,7 @@ export function registerUserRoutes(api: GroupRouter, store: Store): void {
 			.get<{ id: string }>("/:id", (ctx) => {
 				const user = store.users.find((u) => u.id === ctx.params.id);
 				if (!user) {
-					return ctx.json({ error: "User not found" }, { status: 404 });
+					throw new NotFoundError("User not found");
 				}
 				return ctx.json({ user });
 			})
@@ -39,7 +39,7 @@ export function registerUserRoutes(api: GroupRouter, store: Store): void {
 			.delete<{ id: string }>("/:id", (ctx) => {
 				const index = store.users.findIndex((u) => u.id === ctx.params.id);
 				if (index === -1) {
-					return ctx.json({ error: "User not found" }, { status: 404 });
+					throw new NotFoundError("User not found");
 				}
 				const [deleted] = store.users.splice(index, 1);
 				return ctx.json({ deleted });
@@ -53,7 +53,7 @@ export function registerUserRoutes(api: GroupRouter, store: Store): void {
 				.get<{ userId: string }>("/", (ctx) => {
 					const user = store.users.find((u) => u.id === ctx.params.userId);
 					if (!user) {
-						return ctx.json({ error: "User not found" }, { status: 404 });
+						throw new NotFoundError("User not found");
 					}
 					return ctx.json({ user, posts: store.posts.filter((p) => p.authorId === user.id) });
 				})

@@ -8,7 +8,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { Router } from "@bunary/http";
 import { buildRouter } from "../src/router.js";
-import { call } from "./helpers.js";
+import { call, expectNotFoundProblem } from "./helpers.js";
 
 let router: Router;
 
@@ -49,8 +49,7 @@ describe("users group (/api/users)", () => {
 	it("GET /:id returns 404 for an unknown user", async () => {
 		const response = await call(router, "GET", "/api/users/999");
 
-		expect(response.status).toBe(404);
-		expect(await response.json()).toEqual({ error: "User not found" });
+		await expectNotFoundProblem(response, "User not found");
 	});
 
 	it("POST / creates a user and lists it afterwards", async () => {
@@ -75,8 +74,7 @@ describe("users group (/api/users)", () => {
 	it("DELETE /:id returns 404 for an unknown user", async () => {
 		const response = await call(router, "DELETE", "/api/users/999");
 
-		expect(response.status).toBe(404);
-		expect(await response.json()).toEqual({ error: "User not found" });
+		await expectNotFoundProblem(response, "User not found");
 	});
 
 	it("never reuses an id after a delete", async () => {
@@ -100,8 +98,7 @@ describe("nested user posts group (/api/users/:userId/posts)", () => {
 	it("GET / returns 404 for an unknown user", async () => {
 		const response = await call(router, "GET", "/api/users/999/posts");
 
-		expect(response.status).toBe(404);
-		expect(await response.json()).toEqual({ error: "User not found" });
+		await expectNotFoundProblem(response, "User not found");
 	});
 
 	it("includes posts created through the posts group", async () => {
@@ -135,8 +132,7 @@ describe("posts group (/api/posts)", () => {
 	it("GET /:id returns 404 for an unknown post", async () => {
 		const response = await call(router, "GET", "/api/posts/999");
 
-		expect(response.status).toBe(404);
-		expect(await response.json()).toEqual({ error: "Post not found" });
+		await expectNotFoundProblem(response, "Post not found");
 	});
 
 	it("POST / creates a post and lists it afterwards", async () => {
@@ -153,7 +149,7 @@ describe("posts group (/api/posts)", () => {
 
 describe("unknown routes", () => {
 	it("returns 404 outside the defined groups", async () => {
-		expect((await call(router, "GET", "/api/nonexistent")).status).toBe(404);
+		await expectNotFoundProblem(await call(router, "GET", "/api/nonexistent"), "No route matches GET /api/nonexistent");
 	});
 
 	it("returns 405 for a known path with the wrong method", async () => {
