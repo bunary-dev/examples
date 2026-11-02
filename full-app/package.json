@@ -1,0 +1,27 @@
+{
+	"name": "full-app",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "A notes API wiring @bunary/http, @bunary/orm and @bunary/auth together through @bunary/core providers",
+	"scripts": {
+		"dev": "bun run db:setup && bun run --hot src/index.ts",
+		"start": "bun run src/index.ts",
+		"db:generate": "drizzle-kit generate",
+		"db:setup": "bun run src/db/setup.ts",
+		"test": "bun test",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@bunary/auth": "^0.4.0",
+		"@bunary/core": "^0.4.0",
+		"@bunary/http": "^0.4.0",
+		"@bunary/orm": "^0.4.0",
+		"drizzle-orm": "^0.45.0"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.2",
+		"drizzle-kit": "^0.31.0",
+		"typescript": "^7.0.2"
+	}
+}
