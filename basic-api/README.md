@@ -2,7 +2,7 @@
 
 A complete example demonstrating all core features of the Bunary framework.
 
-**Targets:** `@bunary/core` ^0.4.0 and `@bunary/http` ^0.4.0 (from npm). Requires Bun ≥ 1.4.0.
+**Targets:** `@bunary/core` ^0.4.0 and `@bunary/http` ^0.7.2 (from npm). Requires Bun ≥ 1.4.0.
 
 ## Features Demonstrated
 

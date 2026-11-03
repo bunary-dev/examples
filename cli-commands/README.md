@@ -5,7 +5,7 @@ scaffolded with `bunary make:command`, registered in `config/bunary.ts` and run 
 with `bunx bunary hello`.
 
 Uses the published `@bunary/core` ^0.4.0 (for the `Command` type and `defineConfig`), with
-`@bunary/cli` ^0.4.3 as a devDependency so `bunx bunary` runs the locally installed cli.
+`@bunary/cli` ^0.4.6 as a devDependency so `bunx bunary` runs the locally installed cli.
 
 ```bash
 bun install

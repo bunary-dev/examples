@@ -14,9 +14,9 @@ describe("package.json", () => {
 });
 
 describe("dependencies", () => {
-  it("targets the 0.4.0 @bunary baseline from npm", () => {
+  it("targets core ^0.4.0 and http ^0.7.2 from npm", () => {
     expect(pkg.dependencies["@bunary/core"]).toBe("^0.4.0");
-    expect(pkg.dependencies["@bunary/http"]).toBe("^0.4.0");
+    expect(pkg.dependencies["@bunary/http"]).toBe("^0.7.2");
   });
 
   it("has a typecheck script", () => {

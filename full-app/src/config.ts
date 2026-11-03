@@ -55,13 +55,17 @@ export function buildConfig(options: AppOptions, users: UserProvider<PublicUser>
 			provider: users,
 			guards: {
 				// Authorization: Bearer <token>. Tokens hold only `sub` (the user id)
-				// and expire after an hour; routes that need more than the id load
-				// the user through the model.
+				// and expire after an hour. Every request loads that user through the
+				// user provider, so a token for a deleted user is unauthenticated
+				// (null); a lookup that throws or rejects is too (auth handles it).
 				jwt: createJwtGuard({
 					secret: options.jwtSecret,
 					provider: users,
 					ttlSeconds: 3600,
-					mapUser: (payload) => ({ id: Number(payload.sub) }),
+					mapUser: async (payload) => {
+						if (typeof payload.sub !== "string" && typeof payload.sub !== "number") return null;
+						return await users.retrieveById(payload.sub);
+					},
 				}),
 			},
 		},

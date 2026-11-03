@@ -5,7 +5,9 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
-import { notes } from "../src/db/schema.js";
+import { DatabaseToken } from "@bunary/orm/provider";
+import type { AppDatabase } from "../src/db/database.js";
+import { notes, users } from "../src/db/schema.js";
 import { ModelsToken } from "../src/models.js";
 import { ada, alan, bootTestApp, call, type CallOptions, type JsonResponse, registerAndLogin, type TestApp } from "./helpers.js";
 
@@ -130,6 +132,28 @@ describe("unauthenticated requests", () => {
 		const response = await send("GET", "/notes", { token: `${header}.${payload}.forged` });
 
 		expect(response.status).toBe(401);
+	});
+});
+
+describe("JWT users are checked against the database", () => {
+	it("a valid token for an existing user reaches a protected notes route", async () => {
+		const token = await registerAndLogin(t.router, ada);
+		const response = await send("GET", "/notes", { token });
+
+		expect(response.status).toBe(200);
+	});
+
+	it("a valid, unexpired token for a deleted user gets 401", async () => {
+		const token = await registerAndLogin(t.router, ada);
+		const db = t.app.get(DatabaseToken) as AppDatabase;
+		await db.delete(users).where(eq(users.id, 1));
+
+		const notesResponse = await send("GET", "/notes", { token });
+		const meResponse = await send("GET", "/me", { token });
+
+		expect(notesResponse.status).toBe(401);
+		expect(notesResponse.headers.get("Content-Type")).toContain("application/problem+json");
+		expect(meResponse.status).toBe(401);
 	});
 });
 

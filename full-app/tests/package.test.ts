@@ -11,11 +11,11 @@ describe("package.json", () => {
 		expect((pkg as { private?: boolean }).private).toBe(true);
 	});
 
-	it("depends only on @bunary/core, http, orm and auth ^0.4.0 from npm, and drizzle-orm", () => {
+	it("depends only on @bunary/core, http, orm and auth from npm, and drizzle-orm", () => {
 		expect(pkg.dependencies).toEqual({
-			"@bunary/auth": "^0.4.0",
+			"@bunary/auth": "^0.5.0",
 			"@bunary/core": "^0.4.0",
-			"@bunary/http": "^0.4.0",
+			"@bunary/http": "^0.7.2",
 			"@bunary/orm": "^0.4.0",
 			"drizzle-orm": "^0.45.0",
 		});
