@@ -3,7 +3,7 @@
 WebSockets and Server-Sent Events with **`@bunary/http`**: a chat room on `router.ws()` and a
 counter stream on `sse()`, on a router mounted on a `@bunary/core` Application.
 
-Targets `@bunary/http` **^0.4.0** and `@bunary/core` **^0.4.0** (Bun ≥ 1.4.0). Those two are the
+Targets `@bunary/http` **^0.7.2** and `@bunary/core` **^0.4.0** (Bun ≥ 1.4.0). Those two are the
 only dependencies.
 
 ## What it shows

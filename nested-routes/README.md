@@ -3,7 +3,7 @@
 Organizes an API into **nested route groups** with **named routes**, mounted on a
 `@bunary/core` Application.
 
-Targets `@bunary/core` **^0.4.0** and `@bunary/http` **^0.7.1** (Bun ≥ 1.4.0).
+Targets `@bunary/core` **^0.4.0** and `@bunary/http` **^0.7.2** (Bun ≥ 1.4.0).
 
 ## What it shows
 

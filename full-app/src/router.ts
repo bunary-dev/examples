@@ -12,7 +12,8 @@
  *   DELETE /notes/:id    requireAuth → 204 (soft delete)
  *
  * Handlers reach the models through the app container (`ctx.app`, set by
- * `httpProvider`), and see `ctx.locals.user` (`{ id }` from the token) inside
+ * `httpProvider`), and see `ctx.locals.user` (the token's user, loaded from
+ * the database by the JWT guard) inside
  * `requireAuth()` groups. Another user's note is answered with 404, the same
  * as one that does not exist.
  */

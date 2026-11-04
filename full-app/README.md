@@ -12,9 +12,9 @@ how they fit together.
 | Package | Version |
 | --- | --- |
 | `@bunary/core` | `^0.4.0` |
-| `@bunary/http` | `^0.4.0` |
+| `@bunary/http` | `^0.7.2` |
 | `@bunary/orm` | `^0.4.0` |
-| `@bunary/auth` | `^0.4.0` |
+| `@bunary/auth` | `^0.5.0` |
 | `drizzle-orm` | `^0.45.0` (peer dependency of the orm) |
 | `drizzle-kit` | `^0.31.0` (dev, migrations) |
 
@@ -63,7 +63,7 @@ Read with `env()` from `@bunary/core` (`src/config.ts`):
 | `DELETE /notes/:id` | JWT | | `204`; the note is soft-deleted |
 
 - Without a valid `Authorization: Bearer <token>`, every JWT route answers `401` (an RFC 9457
-  problem document).
+  problem document). So does a valid token whose user no longer exists.
 - Someone else's note gets `404`, the same as one that doesn't exist, as does a deleted note.
 - Invalid input gets `422` with every issue listed in `errors`.
 - No response ever contains a password or its hash: the `password` column is `hidden` on the model.
@@ -119,8 +119,10 @@ await app.boot();
   `Bun.password.verify`) with no adapter package, and neither package imports the other. The provider
   belongs to the `auth` config, which exists before the app registers its models, so it takes a
   function that resolves the models from the app when a request needs them.
-- **What the guard knows.** The JWT holds only `sub`, so `ctx.locals.user` is `{ id }`. Routes that
-  need more load the user through the model (`GET /me`). The user provider returns `toJSON()`
+- **What the guard knows.** The JWT holds only `sub`. The guard's async `mapUser` (auth ≥ 0.5)
+  loads that user through the user provider on every request, so `ctx.locals.user` is the user's
+  `toJSON()` snapshot, and a valid, unexpired token for a user who has since been deleted gets
+  `401`, as does one whose lookup fails. The user provider returns `toJSON()`
   snapshots, so the user that `attempt()` returns, and that `/login` sends, has no password either.
 
 ## Request validation and CORS

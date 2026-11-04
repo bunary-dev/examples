@@ -5,9 +5,9 @@
     "": {
       "name": "auth-example",
       "dependencies": {
-        "@bunary/auth": "^0.4.0",
+        "@bunary/auth": "^0.5.0",
         "@bunary/core": "^0.4.0",
-        "@bunary/http": "^0.4.0",
+        "@bunary/http": "^0.7.2",
       },
       "devDependencies": {
         "@types/bun": "^1.4.2",
@@ -16,11 +16,11 @@
     },
   },
   "packages": {
-    "@bunary/auth": ["@bunary/auth@0.4.0", "", { "dependencies": { "jose": "^6.2.14" }, "peerDependencies": { "@bunary/core": "^0.4.0" }, "optionalPeers": ["@bunary/core"] }, "sha512-zCsMk4SOgVedpLKaf/A5LvkMhMhyI9SQOiX6IydJudhKwSQ+A+MrAxT2juvmsiQ7Uxh2aovA0vfZcjiSjsFruA=="],
+    "@bunary/auth": ["@bunary/auth@0.5.0", "", { "dependencies": { "jose": "^6.2.14" }, "peerDependencies": { "@bunary/core": "^0.4.0" }, "optionalPeers": ["@bunary/core"] }, "sha512-ar/DrnvKnyJGwanDu0xvVBWcP6CZp88/i66QZrcs/WJBejSRNcHCeLRxpL/9paWvKvqj6IEXUZEereC1XSs3zg=="],
 
     "@bunary/core": ["@bunary/core@0.4.0", "", { "dependencies": { "@standard-schema/spec": "^1.1.0" } }, "sha512-ksZTrYQtKnAaHpswckJosOEwOIyu5bR7LIU/JilxGb+IttQ+SkYZ7XC2T9En8dpFEGlKvD1+tbqlghYOryoemw=="],
 
-    "@bunary/http": ["@bunary/http@0.4.0", "", { "dependencies": { "cookie": "2.0.1" }, "peerDependencies": { "@bunary/core": "^0.4.0" }, "optionalPeers": ["@bunary/core"] }, "sha512-ZGTLMZ1nB50pQnpjgyQpHbCNzsxyNNa+XqO0ioJbJqMj0RRJ4XvuSfZIsWF+XHQE6DuUePtIgpOaYfdpdQHHVA=="],
+    "@bunary/http": ["@bunary/http@0.7.2", "", { "dependencies": { "cookie": "2.0.1" }, "peerDependencies": { "@bunary/core": "^0.4.0" }, "optionalPeers": ["@bunary/core"] }, "sha512-BM6coYOX6QpRLRdsU+NTjm+m2bRcyl180h7XP6gsWM3a2ffvQyq8vlwKrJEXdvJyEMj67QF4fuxKPnl9MV5eTw=="],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 

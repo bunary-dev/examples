@@ -8,14 +8,14 @@
         "@bunary/core": "^0.4.0",
       },
       "devDependencies": {
-        "@bunary/cli": "^0.4.3",
+        "@bunary/cli": "^0.4.6",
         "@types/bun": "^1.4.2",
         "typescript": "^7.0.2",
       },
     },
   },
   "packages": {
-    "@bunary/cli": ["@bunary/cli@0.4.3", "", { "dependencies": { "@bunary/core": "^0.4.0" }, "bin": { "bunary": "dist/bin.js" } }, "sha512-EN0oSvO7CYJxhWkYKwT+HiNpTX1am0Jd+zHedT3uq+ZuwzAeXdvop6VpxyuGXL+P5c97X4wXOxPxx170wCiPQg=="],
+    "@bunary/cli": ["@bunary/cli@0.4.6", "", { "dependencies": { "@bunary/core": "^0.4.0" }, "bin": { "bunary": "dist/bin.js" } }, "sha512-VHBHohdvaxSjW56eayIgGiX0nW+pu8v16tSfoWKKGAbB5cfjPyEbzLnvswx0ClYtaSJeQXaz4r8f9aNOiqxAzQ=="],
 
     "@bunary/core": ["@bunary/core@0.4.0", "", { "dependencies": { "@standard-schema/spec": "^1.1.0" } }, "sha512-ksZTrYQtKnAaHpswckJosOEwOIyu5bR7LIU/JilxGb+IttQ+SkYZ7XC2T9En8dpFEGlKvD1+tbqlghYOryoemw=="],
 

@@ -3,7 +3,7 @@
 Authentication with **`@bunary/auth`**: a JWT guard and an encrypted cookie session guard over one
 user provider, on a `@bunary/http` router mounted on a `@bunary/core` Application.
 
-Targets `@bunary/auth` **^0.4.0**, `@bunary/http` **^0.4.0** and `@bunary/core` **^0.4.0**
+Targets `@bunary/auth` **^0.5.0**, `@bunary/http` **^0.7.2** and `@bunary/core` **^0.4.0**
 (Bun ≥ 1.4.0). Those three are the only dependencies.
 
 ## What it shows

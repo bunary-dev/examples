@@ -11,11 +11,11 @@ describe("package.json", () => {
 		expect((pkg as { private?: boolean }).private).toBe(true);
 	});
 
-	it("depends only on @bunary/auth, @bunary/http and @bunary/core ^0.4.0 from npm", () => {
+	it("depends only on @bunary/auth, @bunary/http and @bunary/core from npm", () => {
 		expect(pkg.dependencies).toEqual({
-			"@bunary/auth": "^0.4.0",
+			"@bunary/auth": "^0.5.0",
 			"@bunary/core": "^0.4.0",
-			"@bunary/http": "^0.4.0",
+			"@bunary/http": "^0.7.2",
 		});
 	});
 

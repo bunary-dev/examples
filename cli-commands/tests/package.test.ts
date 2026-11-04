@@ -15,8 +15,8 @@ describe("package.json", () => {
 		expect(pkg.dependencies).toEqual({ "@bunary/core": "^0.4.0" });
 	});
 
-	it("has @bunary/cli ^0.4.3 as a devDependency for `bunx bunary`", () => {
-		expect(pkg.devDependencies["@bunary/cli"]).toBe("^0.4.3");
+	it("has @bunary/cli ^0.4.6 as a devDependency for `bunx bunary`", () => {
+		expect(pkg.devDependencies["@bunary/cli"]).toBe("^0.4.6");
 	});
 
 	it("has test and typecheck scripts", () => {
